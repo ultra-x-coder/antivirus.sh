@@ -1045,6 +1045,15 @@ PermitRootLogin no
 EOF
 }
 
+fix_create_admin_user() {
+    # full guided flow: user + key + one-time HTTPS delivery; afterwards
+    # run_create_user itself offers root/password lockdown behind the
+    # "key login verified" gate
+    run_create_user || return 1
+    load_sshd_config   # the flow above may have changed sshd settings
+    keybased_admin_exists
+}
+
 fix_perms_critical() {
     _perm() {  # _perm <path> <mode> [owner:group]
         [[ -e "$1" ]] || return 0
@@ -1411,6 +1420,20 @@ chk_ssh() {
         return 0
     fi
     load_sshd_config
+
+    # lockout-safety first: a sudo user with an SSH key must exist before any
+    # root/password lockdown below can be applied safely
+    if keybased_admin_exists; then
+        ok "a sudo-capable user with an SSH key exists (lockout-safe)"
+    elif [[ "$MODE" != "audit" && "$INTERACTIVE_TTY" == 1 && "$IS_ROOT" == 1 ]]; then
+        offer_fix warn 0 "no sudo user with an SSH key — the root password is the single point of access" \
+            "create a sudo user with an SSH key (one-time HTTPS download link), then lock down root login" \
+            fix_create_admin_user
+    else
+        warn "no sudo user with an SSH key — the root password is the single point of access"
+        reco "create one interactively: sudo bash $0 --create-user"
+    fi
+
     local v
     v="$(sshd_opt permitrootlogin prohibit-password)"
     case "$v" in
