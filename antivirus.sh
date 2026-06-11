@@ -21,7 +21,7 @@
 #  Works in best-effort mode on Debian, RHEL/CentOS/Alma/Rocky, Fedora,
 #  Arch, openSUSE and other systemd or sysvinit distributions.
 #
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 # ---------------------------------------------------------------------------
 # Environment
@@ -81,6 +81,15 @@ BASE_DIR="/var/lib/antivirus.sh"
 LOG_DIR="/var/log/antivirus.sh"
 BK_DIR=""                # set on first backup
 QDIR=""
+
+# Key issuance & one-time HTTPS delivery (see issue_and_deliver_key)
+KEY_DELIVER=""           # key | archive  (empty = ask interactively)
+KEY_TTL_MIN=10           # lifetime of the one-time download link, minutes
+KEYWORK=""               # tmpfs workdir holding the private key until download
+KEYFW_KIND=""            # ufw | firewalld — temporary rule to remove on exit
+KEYFW_PORT=""
+CREATED_USER=""
+SSH_TEST_CMD=""
 
 # Suspicious content patterns (reverse shells, droppers, miners, backdoors)
 SUS_ERE='(/dev/tcp/|/dev/udp/|bash -i[[:space:]>]|sh -i[[:space:]>]|nc(\.traditional|\.openbsd)?[[:space:]][^|;]*-e[[:space:]]|ncat[[:space:]][^|;]*(-e[[:space:]]|--exec)|socat[[:space:]][^|;]*exec:|base64[[:space:]]+(-d|--decode)[^|;]*\|[[:space:]]*(ba|da|z)?sh|curl[^|;]*\|[[:space:]]*(ba|da|z)?sh|wget[^|;]*\|[[:space:]]*(ba|da|z)?sh|wget[^|;]*-O-[^|;]*\|[[:space:]]*sh|eval.*base64|stratum\+tcp|stratum\+ssl|xmrig|minerd|kdevtmpfsi|kinsing|kerberods|watchdogs|minexmr|supportxmr|nanopool\.org|moneroocean|c3pool|chmod[[:space:]]+\+?[0-7]*x?[[:space:]]+/tmp/|/dev/shm/[^[:space:]]*\.(sh|py|pl|elf|bin)|python[23]?[[:space:]]+-c[[:space:]].{0,40}socket|perl[[:space:]]+-e[[:space:]].{0,40}socket|exec[[:space:]]+[0-9]+<>/dev/tcp|LD_PRELOAD=)'
@@ -494,6 +503,328 @@ current_user_has_key() {
     [[ -s "$home/.ssh/authorized_keys" ]]
 }
 
+# any successful key-based SSH login in the recent auth logs?
+recent_pubkey_login() {
+    if command -v journalctl >/dev/null 2>&1; then
+        journalctl -q --since "2 days ago" -t sshd -t ssh 2>/dev/null \
+            | grep -q 'Accepted publickey' && return 0
+    fi
+    grep -qs 'Accepted publickey' /var/log/auth.log /var/log/secure && return 0
+    return 1
+}
+
+# ---------------------------------------------------------------------------
+# Key issuance & one-time HTTPS delivery
+#
+# Generates an ed25519 keypair for a user ON the server, installs the public
+# half into authorized_keys and serves the private half exactly once over a
+# self-expiring HTTPS link.  Secrets (key passphrase / archive password) are
+# printed to this terminal only — two separate channels, so intercepting the
+# link alone is useless.  The private key lives on tmpfs and is shredded on
+# every exit path.
+# ---------------------------------------------------------------------------
+rand_str() {  # rand_str <len> [charset]
+    LC_ALL=C tr -dc "${2:-A-Za-z0-9}" </dev/urandom | head -c "$1"
+}
+
+rand_pw() {   # passwords/passphrases: letters, digits, shell-safe symbols
+    rand_str "$1" 'A-Za-z0-9_@%+='
+}
+
+ask_secret() {  # ask_secret <prompt> <minlen>  -> echoes the secret
+    local s1 s2
+    while true; do
+        printf '  %s (min %s chars): ' "$1" "$2" >&2
+        IFS= read -rs s1 </dev/tty; echo >&2
+        if (( ${#s1} < $2 )); then echo "  too short, try again" >&2; continue; fi
+        printf '  repeat: ' >&2
+        IFS= read -rs s2 </dev/tty; echo >&2
+        if [[ "$s1" != "$s2" ]]; then echo "  values do not match, try again" >&2; continue; fi
+        printf '%s' "$s1"
+        return 0
+    done
+}
+
+key_cleanup() {
+    if [[ -n "$KEYFW_KIND" ]]; then
+        case "$KEYFW_KIND" in
+            ufw)       ufw delete allow "$KEYFW_PORT/tcp" >/dev/null 2>&1 ;;
+            firewalld) firewall-cmd --remove-port="$KEYFW_PORT/tcp" >/dev/null 2>&1 ;;
+        esac
+        KEYFW_KIND=""
+    fi
+    if [[ -n "$KEYWORK" && -d "$KEYWORK" ]]; then
+        command -v shred >/dev/null 2>&1 \
+            && find "$KEYWORK" -type f -exec shred -fu {} + 2>/dev/null
+        rm -rf "$KEYWORK"
+        KEYWORK=""
+    fi
+}
+
+detect_public_host() {  # echoes the address clients should connect to
+    local h=""
+    # 3rd field of SSH_CONNECTION = the server address the admin connected to
+    [[ -n "${SSH_CONNECTION:-}" ]] && h="$(awk '{print $3}' <<<"$SSH_CONNECTION")"
+    if [[ -z "$h" ]] && command -v curl >/dev/null 2>&1; then
+        h="$(curl -fsS --max-time 5 https://ifconfig.me 2>/dev/null)"
+    fi
+    if [[ -z "$h" ]]; then
+        h="$(ip route get 1.1.1.1 2>/dev/null \
+            | awk '{for(i=1;i<NF;i++) if($i=="src"){print $(i+1); exit}}')"
+    fi
+    [[ -n "$h" ]] || return 1
+    printf '%s' "$h"
+}
+
+pick_free_port() {
+    local _i p
+    for _i in $(seq 1 50); do
+        p=$(( (RANDOM % 20001) + 40000 ))
+        ss -tln 2>/dev/null | grep -qE "[:.]$p([[:space:]]|$)" || { printf '%s' "$p"; return 0; }
+    done
+    return 1
+}
+
+key_make_cert() {  # key_make_cert <host>
+    local host="$1" san
+    if [[ "$host" =~ ^[0-9.]+$ || "$host" == *:* ]]; then
+        san="subjectAltName=IP:$host"
+    else
+        san="subjectAltName=DNS:$host"
+    fi
+    openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+        -keyout "$KEYWORK/tls.key" -out "$KEYWORK/tls.crt" \
+        -subj "/CN=$host" -addext "$san" >/dev/null 2>&1 \
+    || openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+        -keyout "$KEYWORK/tls.key" -out "$KEYWORK/tls.crt" \
+        -subj "/CN=$host" >/dev/null 2>&1
+}
+
+key_write_server() {
+    cat > "$KEYWORK/server.py" <<'PYEOF'
+import http.server, os, ssl, sys, threading
+
+token  = os.environ["AV_TOKEN"]
+fpath  = os.environ["AV_FILE"]
+fname  = os.environ["AV_NAME"]
+port   = int(os.environ["AV_PORT"])
+ttl    = int(os.environ["AV_TTL"])
+allow  = os.environ.get("AV_ALLOW", "")
+cert   = os.environ["AV_CERT"]
+keyf   = os.environ["AV_KEYF"]
+logf   = os.environ["AV_LOG"]
+
+state = {"served": False}
+lock = threading.Lock()
+
+def log(line):
+    with lock:
+        with open(logf, "a") as f:
+            f.write(line + "\n")
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    server_version = "antivirus.sh"
+    sys_version = ""
+
+    def log_message(self, fmt, *args):
+        log("%s %s" % (self.client_address[0], fmt % args))
+
+    def do_GET(self):
+        ip = self.client_address[0]
+        if allow and ip != allow:
+            log("DENY (ip not allowed): %s" % ip)
+            self.send_error(403)
+            return
+        if self.path != "/%s/%s" % (token, fname):
+            log("DENY (bad path) from %s: %s" % (ip, self.path[:120]))
+            self.send_error(404)
+            return
+        try:
+            with open(fpath, "rb") as f:
+                data = f.read()
+        except OSError:
+            self.send_error(410)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", 'attachment; filename="%s"' % fname)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+        log("SERVED to %s" % ip)
+        state["served"] = True
+        threading.Thread(target=srv.shutdown, daemon=True).start()
+
+srv = http.server.HTTPServer(("0.0.0.0", port), Handler)
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ctx.load_cert_chain(cert, keyf)
+srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+
+timer = threading.Timer(ttl, srv.shutdown)
+timer.daemon = True
+timer.start()
+
+try:
+    srv.serve_forever()
+except KeyboardInterrupt:
+    pass
+timer.cancel()
+sys.exit(0 if state["served"] else 3)
+PYEOF
+}
+
+serve_key_once() {  # serve_key_once <file> <name> <user> <key|archive>
+    local file="$1" name="$2" uname="$3" deliver="$4"
+    local host port token certfp lf url rc=0
+
+    host="$(detect_public_host)" || { warn "cannot detect the public IP of this server"; return 1; }
+    port="$(pick_free_port)"     || { warn "no free port for the download server"; return 1; }
+    token="$(rand_str 32 'a-f0-9')"
+    key_make_cert "$host"        || { warn "TLS certificate generation failed"; return 1; }
+    certfp="$(openssl x509 -in "$KEYWORK/tls.crt" -noout -fingerprint -sha256 2>/dev/null \
+              | sed 's/^.*Fingerprint=//')"
+    key_write_server
+
+    if command -v ufw >/dev/null 2>&1 && LC_ALL=C ufw status 2>/dev/null | grep -q '^Status: active'; then
+        ufw allow "$port/tcp" comment 'antivirus.sh key delivery' >/dev/null 2>&1 \
+            && { KEYFW_KIND=ufw; KEYFW_PORT=$port; }
+        note "ufw: port $port/tcp opened temporarily (auto-closed after delivery)"
+    elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+        firewall-cmd --add-port="$port/tcp" >/dev/null 2>&1 \
+            && { KEYFW_KIND=firewalld; KEYFW_PORT=$port; }
+        note "firewalld: port $port/tcp opened temporarily (auto-closed after delivery)"
+    fi
+
+    lf="$LOG_DIR/key-delivery-$START_TS.log"
+    : > "$lf" 2>/dev/null || lf="$KEYWORK/access.log"
+    url="https://$host:$port/$token/$name"
+
+    out ""
+    out "  ${C_W}one-time download link (expires in $KEY_TTL_MIN min):${C_0}"
+    out "    ${C_G}$url${C_0}"
+    out "  TLS certificate SHA256 (verify before trusting the self-signed cert):"
+    out "    ${C_C}$certfp${C_0}"
+    out "  from your own device (chmod 600 is REQUIRED — ssh rejects keys with open permissions):"
+    if [[ "$deliver" == "archive" ]]; then
+        out "    curl -k -o $name '$url'"
+        out "    openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in $name -out keys.tar.gz"
+        out "    tar xzf keys.tar.gz && rm keys.tar.gz $name && chmod 600 ${uname}_ed25519"
+    else
+        out "    curl -k -o $name '$url' && chmod 600 $name"
+    fi
+    out "  (downloaded with a browser instead? then run: chmod 600 ~/Downloads/$name)"
+    info "waiting for the download (one-shot; Ctrl-C aborts and wipes the key)..."
+
+    AV_TOKEN="$token" AV_FILE="$file" AV_NAME="$name" AV_PORT="$port" \
+    AV_TTL="$(( KEY_TTL_MIN * 60 ))" AV_ALLOW="" AV_CERT="$KEYWORK/tls.crt" \
+    AV_KEYF="$KEYWORK/tls.key" AV_LOG="$lf" python3 "$KEYWORK/server.py" || rc=$?
+
+    SSH_TEST_CMD="ssh -i ${uname}_ed25519 ${uname}@${host}"
+    case "$rc" in
+        0)  fixed "private key downloaded — wiping it from this server now"
+            note "on YOUR device run first: chmod 600 ${uname}_ed25519 (else ssh refuses the key)"
+            note "access log: $lf"
+            return 0 ;;
+        3)  warn "link expired, nothing was downloaded — the private key is wiped"
+            reco "issue a fresh key for '$uname': sudo bash $0 --create-user (or re-run this fix)"
+            return 1 ;;
+        *)  warn "download server exited unexpectedly (code $rc) — the private key is wiped"
+            return 1 ;;
+    esac
+}
+
+issue_and_deliver_key() {  # issue_and_deliver_key <username>
+    local uname="$1" home keyname keyfile keypass keypass_shown=0 fp
+    local deliver servefile servename archpass="" archpass_shown=0 rc
+
+    command -v python3 >/dev/null 2>&1 \
+        || { warn "python3 is required for HTTPS key delivery — paste a public key instead"; return 1; }
+    home="$(getent passwd "$uname" | awk -F: '{print $6}')"
+    [[ -n "$home" ]] || { warn "cannot determine home directory of '$uname'"; return 1; }
+
+    # workdir on tmpfs so the private key never touches the disk
+    KEYWORK="$(mktemp -d /dev/shm/antivirus-key.XXXXXX 2>/dev/null \
+               || mktemp -d /tmp/antivirus-key.XXXXXX)" || return 1
+    chmod 700 "$KEYWORK"
+    keyname="${uname}_ed25519"
+    keyfile="$KEYWORK/$keyname"
+
+    if ask "generate a random passphrase for the private key (otherwise you type your own)" y; then
+        keypass="$(rand_pw 24)"; keypass_shown=1
+    else
+        keypass="$(ask_secret "passphrase for the SSH key" 8)"
+    fi
+
+    if ! ssh-keygen -t ed25519 -a 100 -f "$keyfile" -N "$keypass" \
+            -C "${uname}@$(hostname -s 2>/dev/null || echo vps)-$(date +%Y%m%d)" >/dev/null; then
+        warn "ssh-keygen failed"
+        key_cleanup
+        return 1
+    fi
+    fp="$(ssh-keygen -lf "$keyfile.pub" 2>/dev/null | awk '{print $2}')"
+
+    mkdir -p "$home/.ssh"
+    cat "$keyfile.pub" >> "$home/.ssh/authorized_keys"
+    chmod 700 "$home/.ssh"
+    chmod 600 "$home/.ssh/authorized_keys"
+    chown -R "$uname:$uname" "$home/.ssh"
+    fixed "ed25519 public key installed for '$uname' (fingerprint: $fp)"
+
+    deliver="$KEY_DELIVER"
+    if [[ -z "$deliver" ]]; then
+        if ask "wrap the key into an AES-256 encrypted archive (otherwise the raw key file is served)" n; then
+            deliver=archive
+        else
+            deliver=key
+        fi
+    fi
+    servefile="$keyfile"; servename="$keyname"
+    if [[ "$deliver" == "archive" ]]; then
+        if ask "generate a random archive password (otherwise you type your own)" y; then
+            archpass="$(rand_pw 24)"; archpass_shown=1
+        else
+            archpass="$(ask_secret "archive password" 8)"
+        fi
+        servename="${uname}_keys.tar.gz.enc"
+        servefile="$KEYWORK/$servename"
+        if ! tar -C "$KEYWORK" -czf "$KEYWORK/payload.tar.gz" "$keyname" "$keyname.pub" \
+           || ! AV_ARCH_PASS="$archpass" openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+                    -in "$KEYWORK/payload.tar.gz" -out "$servefile" -pass env:AV_ARCH_PASS; then
+            warn "archive encryption failed"
+            key_cleanup
+            return 1
+        fi
+        rm -f "$KEYWORK/payload.tar.gz"
+    fi
+
+    out ""
+    out "  ${C_W}credentials — shown ONCE, stored nowhere on this server:${C_0}"
+    [[ "$keypass_shown"  == 1 ]] && out "    key passphrase:   ${C_G}$keypass${C_0}"
+    [[ "$archpass_shown" == 1 ]] && out "    archive password: ${C_G}$archpass${C_0}"
+    out "    ${C_Y}save these in a password manager NOW${C_0}"
+
+    serve_key_once "$servefile" "$servename" "$uname" "$deliver"
+    rc=$?
+    key_cleanup
+    return $rc
+}
+
+offer_post_key_hardening() {  # called right after a key is installed & delivered
+    local uname="$1"
+    ssh_server_present || return 0
+    out ""
+    note "TEST the key login NOW from your own device, in a NEW terminal"
+    note "(keep this session open!):  ${SSH_TEST_CMD:-ssh ${uname}@<server-ip>}"
+    if ask "key login VERIFIED in a separate session — disable SSH root login and password auth now" n; then
+        fix_ssh_disable_root      && fixed "PermitRootLogin no"
+        fix_ssh_disable_passwords && fixed "PasswordAuthentication no"
+        note "existing sessions are not dropped — keep this one until re-tested"
+    else
+        info "SSH lockdown postponed — verify the key login first"
+        reco "after the key login works: sudo bash $0 --harden (it will offer key-only SSH)"
+    fi
+}
+
 # ---------------------------------------------------------------------------
 # Fix functions
 # ---------------------------------------------------------------------------
@@ -666,10 +997,29 @@ EOF
 }
 
 fix_ssh_disable_passwords() {
+    # dead-end removal: instead of a flat refusal, offer to create the missing
+    # key-based sudo user right here (interactive sessions only)
     if ! keybased_admin_exists && ! current_user_has_key; then
-        warn "refused: no sudo-capable user has an SSH key — you would lock yourself out"
-        reco "add your public key to ~/.ssh/authorized_keys (or run --create-user), then re-run"
-        return 1
+        if [[ "$INTERACTIVE_TTY" == 1 && "$IS_ROOT" == 1 ]] \
+           && ask "no user has an SSH key yet — create a sudo user with a key now (one-time download link)" y; then
+            local SKIP_POST_KEY_OFFER=1
+            run_create_user
+        fi
+        if ! keybased_admin_exists && ! current_user_has_key; then
+            warn "refused: no sudo-capable user has an SSH key — you would lock yourself out"
+            reco "add your public key to ~/.ssh/authorized_keys (or run --create-user), then re-run"
+            return 1
+        fi
+    fi
+    # second gate: a key in authorized_keys is not proof it works — look for a
+    # real successful key login before cutting off password access
+    if [[ "$INTERACTIVE_TTY" == 1 && "$ASSUME_YES" != 1 ]] && ! recent_pubkey_login; then
+        warn "auth logs show NO successful key-based login yet"
+        note "test from your device first: ${SSH_TEST_CMD:-ssh -i <keyfile> <user>@<server-ip>}"
+        if ! ask "key login NOT verified — disable password authentication anyway" n; then
+            reco "verify the key login from your device, then re-run this fix"
+            return 1
+        fi
     fi
     _sshd_write_settings <<'EOF'
 PasswordAuthentication no
@@ -680,8 +1030,15 @@ EOF
 
 fix_ssh_disable_root() {
     if ! keybased_admin_exists; then
-        warn "refused: no sudo-capable user with an SSH key exists — create one first (--create-user)"
-        return 1
+        if [[ "$INTERACTIVE_TTY" == 1 && "$IS_ROOT" == 1 ]] \
+           && ask "no sudo user with an SSH key exists — create one now (one-time download link)" y; then
+            local SKIP_POST_KEY_OFFER=1
+            run_create_user
+        fi
+        if ! keybased_admin_exists; then
+            warn "refused: no sudo-capable user with an SSH key exists — create one first (--create-user)"
+            return 1
+        fi
     fi
     _sshd_write_settings <<'EOF'
 PermitRootLogin no
@@ -2034,26 +2391,43 @@ run_create_user() {
         passwd "$uname" </dev/tty
     fi
 
-    if ask "add an SSH public key for '$uname' (recommended)" y; then
-        local key home
-        printf '  paste the public key (ssh-ed25519/ssh-rsa ...): '
-        read -r key </dev/tty
-        if [[ "$key" =~ ^(ssh-|ecdsa-|sk-) ]]; then
-            home="$(getent passwd "$uname" | awk -F: '{print $6}')"
-            mkdir -p "$home/.ssh"
-            printf '%s\n' "$key" >> "$home/.ssh/authorized_keys"
-            chmod 700 "$home/.ssh"
-            chmod 600 "$home/.ssh/authorized_keys"
-            chown -R "$uname:$uname" "$home/.ssh"
-            fixed "SSH key installed for '$uname'"
-            if ssh_server_present && ask "now disable SSH root login and password authentication (key-only)" n; then
-                fix_ssh_disable_root && fixed "PermitRootLogin no"
-                fix_ssh_disable_passwords && fixed "PasswordAuthentication no"
-                note "TEST in a NEW terminal: ssh $uname@<server-ip> — before closing this session!"
+    local keydone=0 kc
+    out ""
+    out "  SSH key for '$uname':"
+    out "    1) generate it HERE and download via a one-time HTTPS link (recommended)"
+    out "    2) paste an existing public key (private key never leaves your device)"
+    out "    3) skip for now"
+    printf '  choice [1]: '
+    read -r kc </dev/tty
+    case "${kc:-1}" in
+        2)
+            local key home
+            printf '  paste the public key (ssh-ed25519/ssh-rsa ...): '
+            read -r key </dev/tty
+            if [[ "$key" =~ ^(ssh-|ecdsa-|sk-) ]]; then
+                home="$(getent passwd "$uname" | awk -F: '{print $6}')"
+                mkdir -p "$home/.ssh"
+                printf '%s\n' "$key" >> "$home/.ssh/authorized_keys"
+                chmod 700 "$home/.ssh"
+                chmod 600 "$home/.ssh/authorized_keys"
+                chown -R "$uname:$uname" "$home/.ssh"
+                fixed "SSH key installed for '$uname'"
+                SSH_TEST_CMD="ssh ${uname}@$(detect_public_host 2>/dev/null || echo '<server-ip>')"
+                keydone=1
+            else
+                warn "that does not look like a public key — skipped"
             fi
-        else
-            warn "that does not look like a public key — skipped"
-        fi
+            ;;
+        3)
+            info "skipped — add a key before disabling SSH password authentication"
+            ;;
+        *)
+            issue_and_deliver_key "$uname" && keydone=1
+            ;;
+    esac
+    CREATED_USER="$uname"
+    if [[ "$keydone" == 1 && "${SKIP_POST_KEY_OFFER:-0}" != 1 ]]; then
+        offer_post_key_hardening "$uname"
     fi
     ok "administrator user '$uname' ready"
 }
@@ -2086,6 +2460,11 @@ print_summary() {
         done
     fi
     out ""
+    if [[ -n "$CREATED_USER" && -n "$SSH_TEST_CMD" ]]; then
+        out "  ${C_W}connect from your own device:${C_0}  ${C_G}$SSH_TEST_CMD${C_0}"
+        out "  (keep the current session open until the key login is verified)"
+        out ""
+    fi
     if [[ "$MODE" == "audit" && $((N_WARN+N_CRIT)) -gt 0 ]]; then
         out "  next step: ${C_W}sudo bash $0 --fix${C_0}   (or interactively: sudo bash $0)"
     fi
@@ -2113,7 +2492,9 @@ MODES (default: interactive — every fix is confirmed):
   --fix              apply all safe fixes automatically (risky ones still ask)
   --harden           full hardening for a fresh VM (firewall, SSH, sysctl,
                      fail2ban, auto-updates, auditd, policies, ...)
-  --create-user      guided creation of a sudo user with SSH key
+  --create-user      guided creation of a sudo user with an SSH key; the key
+                     can be generated here and downloaded via a one-time
+                     HTTPS link, or you paste your own public key
   --rollback [TS]    undo changes from the last (or given) run
   --install-tools    install ClamAV, rkhunter, chkrootkit
 
@@ -2128,6 +2509,9 @@ BEHAVIOUR:
   --quick            skip slow scans (full-disk find, ClamAV, rkhunter)
   --full             deepest scan: whole filesystem, all packages verified
   --yes, -y          assume "yes" for every question — INCLUDING RISKY FIXES
+  --deliver key|archive  generated private key delivery: raw key file or an
+                     AES-256 encrypted archive (default: ask)
+  --key-ttl MIN      lifetime of the one-time download link (default: 10)
   --no-external      never run/suggest third-party scanners
   --report FILE      write the report to FILE
   --no-color         disable colored output
@@ -2163,6 +2547,12 @@ parse_args() {
             --quick)        QUICK=1 ;;
             --full)         FULL=1 ;;
             --yes|-y)       ASSUME_YES=1 ;;
+            --deliver)      case "${2:-}" in
+                                key|archive) KEY_DELIVER="$2"; shift ;;
+                                *) echo "--deliver needs 'key' or 'archive'" >&2; exit 2 ;;
+                            esac ;;
+            --key-ttl)      [[ "${2:-}" =~ ^[0-9]+$ ]] || { echo "--key-ttl needs minutes" >&2; exit 2; }
+                            KEY_TTL_MIN="$2"; shift ;;
             --no-external)  NO_EXTERNAL=1 ;;
             --report)       [[ -n "${2:-}" ]] && { REPORT_FILE="$2"; shift; } ;;
             --no-color)     NO_COLOR=1 ;;
@@ -2209,6 +2599,19 @@ main() {
             || warn "some tools failed to install"
     fi
 
+    # Pre-flight for hardening: make sure key-based admin access exists BEFORE
+    # any SSH lockdown is offered — removes the lock-yourself-out dead end.
+    if [[ "$MODE" == "harden" && "$IS_ROOT" == 1 && "$INTERACTIVE_TTY" == 1 ]] \
+       && ! keybased_admin_exists; then
+        hdr "Pre-flight: emergency-proof access"
+        info "no sudo user with an SSH key exists — without one, key-only SSH cannot be enabled safely"
+        if ask "create a sudo user with an SSH key now (downloadable via one-time HTTPS link)" y; then
+            run_create_user
+        else
+            info "skipping — SSH lockdown will stay limited to safe changes"
+        fi
+    fi
+
     local run_sys=$SCOPE_ALL run_net=$SCOPE_ALL run_mal=$SCOPE_ALL
     [[ "$SCOPE_SYSTEM"  == 1 ]] && run_sys=1
     [[ "$SCOPE_NETWORK" == 1 ]] && run_net=1
@@ -2243,6 +2646,7 @@ main() {
     fi
 }
 
-trap 'echo; echo "interrupted — partial report: ${REPORT_FILE:-n/a}"; exit 130' INT TERM
+trap 'key_cleanup; echo; echo "interrupted — partial report: ${REPORT_FILE:-n/a}"; exit 130' INT TERM
+trap 'key_cleanup' EXIT
 
 main "$@"

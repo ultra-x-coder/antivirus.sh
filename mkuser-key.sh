@@ -541,18 +541,21 @@ print_download_help() {
     say "    # 1) check the certificate fingerprint:"
     say "    openssl s_client -connect $PUBLIC_HOST:$PORT </dev/null 2>/dev/null \\"
     say "      | openssl x509 -noout -fingerprint -sha256"
-    say "    # 2) download:"
-    say "    curl -k -o $SERVE_NAME '$url'"
     if [[ "$DELIVER" == "archive" ]]; then
+        say "    # 2) download:"
+        say "    curl -k -o $SERVE_NAME '$url'"
         say "    # 3) decrypt and unpack:"
         say "    openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \\"
         say "      -in $SERVE_NAME -out keys.tar.gz    # asks the archive password"
         say "    tar xzf keys.tar.gz && rm keys.tar.gz $SERVE_NAME"
         say "    chmod 600 ${USERNAME}_ed25519"
     else
-        say "    # 3) protect the file:"
-        say "    chmod 600 $SERVE_NAME"
+        say "    # 2) download AND restrict permissions (ssh refuses keys with mode 644):"
+        say "    curl -k -o $SERVE_NAME '$url' && chmod 600 $SERVE_NAME"
     fi
+    say ""
+    say "  ${C_Y}downloaded with a browser? ssh will say 'bad permissions' until you run:${C_0}"
+    say "    chmod 600 <path-to-key>"
     say ""
 }
 
@@ -562,7 +565,8 @@ print_final_instructions() {
     say "${C_Y}  BEFORE you disable root login / password authentication:${C_0}"
     say "${C_Y}============================================================${C_0}"
     say "  1. open a NEW terminal on your machine (keep this session alive!)"
-    say "  2. test the key login:"
+    say "  2. make sure the key file is protected, then test the login:"
+    say "       ${C_W}chmod 600 ${USERNAME}_ed25519${C_0}"
     say "       ${C_W}ssh -i ${USERNAME}_ed25519 $USERNAME@$PUBLIC_HOST${C_0}"
     say "     (it will ask the KEY passphrase, then 'sudo -i' asks the ACCOUNT password)"
     say "  3. only after a successful login run the hardening, e.g.:"
