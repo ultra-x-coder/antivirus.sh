@@ -942,6 +942,28 @@ EOF
             echo "net.ipv6.conf.all.forwarding = 0"
         fi
     } | write_managed_file /etc/sysctl.d/99-antivirus-sh.conf
+
+    # ufw applies /etc/ufw/sysctl.conf on every (re)start AFTER systemd-sysctl
+    # and resets log_martians to 0 — comment its conflicting lines out
+    if [[ -f /etc/ufw/sysctl.conf ]] \
+       && grep -qE '^net/ipv4/conf/(all|default)/log_martians' /etc/ufw/sysctl.conf; then
+        backup_file /etc/ufw/sysctl.conf
+        sed -ri 's%^(net/ipv4/conf/(all|default)/log_martians)%#antivirus.sh# \1%' /etc/ufw/sysctl.conf
+        note "commented log_martians override in /etc/ufw/sysctl.conf (ufw was resetting it each start)"
+    fi
+
+    # apport (Ubuntu crash reporter) writes fs.suid_dumpable=2 on every boot,
+    # after all sysctl files — disable it (CIS-recommended on servers anyway)
+    if pkg_installed apport || svc_active apport; then
+        if [[ -f /etc/default/apport ]]; then
+            backup_file /etc/default/apport
+            sed -ri 's/^enabled=.*/enabled=0/' /etc/default/apport
+        fi
+        systemctl disable --now apport >/dev/null 2>&1
+        record_undo "systemctl enable --now apport"
+        note "apport crash reporter disabled (it was setting fs.suid_dumpable=2 each boot)"
+    fi
+
     if command -v sysctl >/dev/null 2>&1; then
         sysctl --system >/dev/null 2>&1 || sysctl -p /etc/sysctl.d/99-antivirus-sh.conf >/dev/null 2>&1
     fi
@@ -1719,6 +1741,11 @@ chk_sysctl() {
         info "container runtime detected — IP forwarding left as-is"
     fi
     if [[ "$bad" == 1 ]]; then
+        if [[ -f /etc/sysctl.d/99-antivirus-sh.conf ]]; then
+            info "hardened values were written before but something overrides them at boot"
+            note "usual suspects: /etc/ufw/sysctl.conf (log_martians), apport service (fs.suid_dumpable=2)"
+            note "and /etc/sysctl.conf — applied AFTER sysctl.d, its keys win; the fix below handles the first two"
+        fi
         offer_fix warn 0 "kernel/network sysctl values are not hardened (see items above)" \
             "write /etc/sysctl.d/99-antivirus-sh.conf with hardened values and apply" fix_sysctl_hardening
     else
