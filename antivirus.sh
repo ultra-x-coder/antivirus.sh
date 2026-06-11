@@ -819,6 +819,9 @@ offer_post_key_hardening() {  # called right after a key is installed & delivere
         fix_ssh_disable_root      && fixed "PermitRootLogin no"
         fix_ssh_disable_passwords && fixed "PasswordAuthentication no"
         note "existing sessions are not dropped — keep this one until re-tested"
+        if ask "also lock the root password (console/su; root stays reachable via 'sudo -i')" n; then
+            fix_lock_root_password && fixed "root password locked (undo: passwd -u root)"
+        fi
     else
         info "SSH lockdown postponed — verify the key login first"
         reco "after the key login works: sudo bash $0 --harden (it will offer key-only SSH)"
@@ -1105,6 +1108,20 @@ fix_lock_user() {
     passwd -l "$1" >/dev/null 2>&1 && record_undo "passwd -u $1"
 }
 
+fix_lock_root_password() {
+    # locks the root PASSWORD only (console/su); root shell stays reachable
+    # via 'sudo -i' — never set root's shell to nologin, that breaks sudo -i
+    # and the provider's rescue console (lockout dead end)
+    if ! keybased_admin_exists; then
+        warn "refused: no sudo-capable user with an SSH key — root password is your only access"
+        return 1
+    fi
+    passwd -l root >/dev/null 2>&1 || return 1
+    record_undo "passwd -u root"
+    note "root password locked; root shell still available via: sudo -i (undo: passwd -u root)"
+    return 0
+}
+
 fix_install_pkg() {     # generic: fix_install_pkg <pkg> [service-to-enable]
     pkg_install "$1" || return 1
     [[ -n "${2:-}" ]] && svc_enable_now "$2"
@@ -1348,6 +1365,18 @@ chk_accounts() {
         reco "set shell to nologin unless required: usermod -s /usr/sbin/nologin <user>"
     else
         ok "no system accounts with login shells"
+    fi
+    # root password lock (only sensible once a key-based sudo admin exists)
+    if [[ "$IS_ROOT" == 1 ]]; then
+        local rootst
+        rootst="$(passwd -S root 2>/dev/null | awk '{print $2}')"
+        if [[ "$rootst" == L* || "$rootst" == "NP" ]]; then
+            ok "root password is locked (root reachable only via sudo / SSH key)"
+        elif keybased_admin_exists && [[ "$MODE" == "harden" ]]; then
+            offer_fix info 1 "root still has a usable password (console/su brute-force surface)" \
+                "lock the root password (passwd -l root; root via 'sudo -i'; undo: passwd -u root)" \
+                fix_lock_root_password
+        fi
     fi
     # sudo membership
     local g sudoers=""
