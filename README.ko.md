@@ -1,8 +1,19 @@
-# antivirus_whole
+# antivirus.sh
 
 <div align="center">
 
 **단일 Bash 스크립트로 제공되는 Linux 안티바이러스 및 악성코드 스캐너.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](antivirus.sh)
+[![Shell](https://img.shields.io/badge/Shell-Bash-blue.svg)](antivirus.sh)
+[![Platform](https://img.shields.io/badge/Platform-Linux-orange.svg)](antivirus.sh)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-supported-E95420.svg)](antivirus.sh)
+[![Debian](https://img.shields.io/badge/Debian-best--effort-A81D33.svg)](antivirus.sh)
+[![RHEL/CentOS](https://img.shields.io/badge/RHEL%2FCentOS-best--effort-EE0000.svg)](antivirus.sh)
+[![Fedora](https://img.shields.io/badge/Fedora-best--effort-51A2DA.svg)](antivirus.sh)
+[![Arch](https://img.shields.io/badge/Arch-best--effort-1793D1.svg)](antivirus.sh)
+[![openSUSE](https://img.shields.io/badge/openSUSE-best--effort-73BA25.svg)](antivirus.sh)
+[![No agent](https://img.shields.io/badge/No%20agent-no%20daemon-lightgrey.svg)](antivirus.sh)
 
 [English](README.md) | [Русский](README.ru.md) | [Español](README.es.md) | [中文](README.zh.md) | [日本語](README.ja.md) | 한국어 | [Deutsch](README.ge.md) | [العربية](README.ar.md) | [Français](README.fr.md) | [Italiano](README.it.md)
 
