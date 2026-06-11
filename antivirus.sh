@@ -73,6 +73,8 @@ PKG=""                   # apt | dnf | yum | zypper | pacman | apk | none
 APT_UPDATED=0
 HAS_SYSTEMD=0
 HAS_CONTAINERS=0
+IS_VM=0                  # running inside a VM/container -> provider-side items are muted
+VIRT=""
 OS_PRETTY=""
 SSHD_T=""
 START_TS="$(date +%Y%m%d-%H%M%S)"
@@ -271,6 +273,14 @@ detect_platform() {
        || command -v kubelet >/dev/null 2>&1 || [[ -d /var/lib/docker ]]; then
         HAS_CONTAINERS=1
     fi
+
+    VIRT="none"
+    if command -v systemd-detect-virt >/dev/null 2>&1; then
+        VIRT="$(systemd-detect-virt 2>/dev/null || echo none)"
+    elif grep -q '^flags.*hypervisor' /proc/cpuinfo 2>/dev/null; then
+        VIRT="vm"
+    fi
+    [[ -n "$VIRT" && "$VIRT" != "none" ]] && IS_VM=1
 }
 
 init_dirs() {
@@ -1070,6 +1080,26 @@ PermitRootLogin no
 EOF
 }
 
+fix_ssh_allowgroups() {
+    # restrict SSH logins to the admin group; several guards against lockout
+    local grp="" u="${SUDO_USER:-$USER}"
+    getent group sudo >/dev/null 2>&1 && grp=sudo
+    [[ -z "$grp" ]] && getent group wheel >/dev/null 2>&1 && grp=wheel
+    [[ -n "$grp" ]] || { warn "refused: no sudo/wheel group on this system"; return 1; }
+    if ! keybased_admin_exists; then
+        warn "refused: no sudo user with an SSH key — AllowGroups would lock you out"
+        return 1
+    fi
+    if [[ -n "$u" && "$u" != "root" ]] && ! id -nG "$u" 2>/dev/null | tr ' ' '\n' | grep -qx "$grp"; then
+        warn "refused: current user '$u' is not in group '$grp' — you would lock yourself out"
+        return 1
+    fi
+    note "root is NOT in '$grp' — after this fix root cannot log in via SSH at all"
+    _sshd_write_settings <<EOF
+AllowGroups $grp
+EOF
+}
+
 fix_create_admin_user() {
     # full guided flow: user + key + one-time HTTPS delivery; afterwards
     # run_create_user itself offers root/password lockdown behind the
@@ -1201,6 +1231,22 @@ fix_secure_shm() {
     return 0
 }
 
+fix_secure_tmp() {
+    backup_file /etc/fstab
+    if grep -qE '^[^#]*[[:space:]]/tmp[[:space:]]' /etc/fstab; then
+        sed -ri '/^[^#]*[[:space:]]\/tmp[[:space:]]/ s%([[:space:]]/tmp[[:space:]]+[^[:space:]]+[[:space:]]+)[^[:space:]]+%\1defaults,noexec,nosuid,nodev%' /etc/fstab
+    else
+        echo "tmpfs /tmp tmpfs defaults,noexec,nosuid,nodev,size=50% 0 0" >> /etc/fstab
+    fi
+    if mountpoint -q /tmp 2>/dev/null; then
+        mount -o remount,noexec,nosuid,nodev /tmp 2>/dev/null
+    else
+        note "separate /tmp becomes active after the next reboot (no live mount over a busy /tmp)"
+    fi
+    note "caveat: noexec /tmp breaks a few installers that compile there — remount exec temporarily if needed"
+    return 0
+}
+
 fix_core_dumps() {
     write_managed_file /etc/security/limits.d/99-antivirus-sh.conf <<'EOF'
 # created by antivirus.sh — disable core dumps
@@ -1269,10 +1315,10 @@ chk_sysinfo() {
     hdr "System information"
     info "host: $(hostname 2>/dev/null)  |  $OS_PRETTY  |  kernel $(uname -r)"
     info "uptime:$(uptime 2>/dev/null | sed 's/.*up/ up/;s/,.*user.*//')"
-    if command -v systemd-detect-virt >/dev/null 2>&1; then
-        local v
-        v="$(systemd-detect-virt 2>/dev/null)"
-        [[ -n "$v" && "$v" != "none" ]] && info "virtualization: $v" || info "virtualization: none detected (bare metal?)"
+    if [[ "$IS_VM" == 1 ]]; then
+        info "virtualization: $VIRT (items only the hosting provider can fix are muted)"
+    else
+        info "virtualization: none detected (bare metal?)"
     fi
     if [[ "$IS_ROOT" != 1 ]]; then
         warn "running WITHOUT root — coverage is limited (shadow, process owners, firewall state, fixes)"
@@ -1522,7 +1568,12 @@ chk_ssh() {
     v="$(sshd_opt port 22)"
     [[ "$v" == "22" ]] && { info "SSH listens on default port 22"; reco "optional: move SSH to a non-standard port to cut log noise (not real security)"; }
     if [[ -z "$(sshd_opt allowusers "")$(sshd_opt allowgroups "")" ]]; then
-        reco "optional: restrict SSH with AllowUsers/AllowGroups in sshd_config"
+        if keybased_admin_exists; then
+            offer_fix info 1 "SSH logins are not restricted to admin users (AllowUsers/AllowGroups unset)" \
+                "restrict SSH logins to the sudo/wheel group (AllowGroups)" fix_ssh_allowgroups
+        else
+            reco "optional: restrict SSH with AllowUsers/AllowGroups in sshd_config"
+        fi
     fi
     # fail2ban
     if svc_active fail2ban; then
@@ -1637,8 +1688,12 @@ chk_network() {
     local arpdup
     arpdup="$(ip neigh 2>/dev/null | awk '$NF!="FAILED" {print $5}' | grep -E ':' | sort | uniq -d | head -3)"
     if [[ -n "$arpdup" ]]; then
-        warn "duplicate MAC addresses in ARP table (possible ARP spoofing): $(tr '\n' ' ' <<<"$arpdup")"
-        reco "verify your gateway MAC with the network provider"
+        if [[ "$IS_VM" == 1 ]]; then
+            info "duplicate MACs in ARP table — normal on virtualized provider networks (shared gateway)"
+        else
+            warn "duplicate MAC addresses in ARP table (possible ARP spoofing): $(tr '\n' ' ' <<<"$arpdup")"
+            reco "verify your gateway MAC with the network provider"
+        fi
     else
         ok "no duplicate MACs in ARP table"
     fi
@@ -1873,9 +1928,11 @@ chk_fs_perms() {
         fi
         opts="$(findmnt -no OPTIONS /tmp 2>/dev/null)"
         if [[ -z "$opts" ]]; then
-            reco "optional: mount /tmp as a separate tmpfs with noexec,nosuid,nodev"
+            offer_fix info 0 "/tmp is not a separate filesystem (no noexec/nosuid protection)" \
+                "mount /tmp as tmpfs with noexec,nosuid,nodev (fstab; active after reboot)" fix_secure_tmp
         elif ! grep -q nosuid <<<"$opts"; then
-            warn "/tmp mounted without nosuid"
+            offer_fix warn 0 "/tmp mounted without nosuid" \
+                "remount /tmp with noexec,nosuid,nodev and persist in fstab" fix_secure_tmp
         else
             ok "/tmp mount options: $opts"
         fi
@@ -1998,10 +2055,13 @@ chk_persistence() {
                     "quarantine $f" quarantine_file "$f"
             else
                 info "user '$user': $nk authorized SSH key(s) in $f"
+                # print fingerprints+comments so the review takes seconds
+                ssh-keygen -lf "$f" 2>/dev/null | head -8 \
+                    | while IFS= read -r l; do note "$l"; done
             fi
         done
     done < /etc/passwd
-    reco "review every authorized_keys entry — delete keys you do not recognize"
+    reco "review every authorized_keys entry above — delete keys you do not recognize"
 
     # third-party APT repos
     if [[ "$PKG" == "apt" ]]; then
@@ -2356,13 +2416,9 @@ chk_platform_services() {
     if svc_active auditd; then
         ok "auditd is recording system events"
     else
-        if [[ "$MODE" == "harden" ]]; then
-            offer_fix info 0 "no audit daemon (auditd) — forensic trail unavailable" \
-                "install & enable auditd" fix_install_pkg auditd auditd
-        else
-            info "auditd not active (optional, recommended for servers)"
-            reco "install auditd for a forensic event trail"
-        fi
+        # offer_fix degrades to a recommendation in --audit mode by itself
+        offer_fix info 0 "no audit daemon (auditd) — forensic trail unavailable" \
+            "install & enable auditd" fix_install_pkg auditd auditd
     fi
     # time sync
     local ntp_ok=0
@@ -2406,8 +2462,21 @@ chk_platform_services() {
         local vuln
         vuln="$(grep -l 'Vulnerable' /sys/devices/system/cpu/vulnerabilities/* 2>/dev/null | xargs -r -n1 basename | tr '\n' ' ')"
         if [[ -n "${vuln// }" ]]; then
-            warn "CPU vulnerable (no mitigation) to: $vuln"
-            reco "update kernel/microcode; on cloud VMs this is mostly the provider's job"
+            if [[ "$IS_VM" == 1 ]]; then
+                # inside a VM the mitigation comes from the host — nothing actionable here
+                info "CPU flags report: $vuln — host microcode is the provider's job, nothing to do inside a VM"
+            else
+                warn "CPU vulnerable (no mitigation) to: $vuln"
+                local mc=""
+                grep -qi 'vendor_id.*intel' /proc/cpuinfo 2>/dev/null && mc=intel-microcode
+                grep -qi 'vendor_id.*amd'   /proc/cpuinfo 2>/dev/null && mc=amd64-microcode
+                if [[ "$PKG" == "apt" && -n "$mc" ]] && ! pkg_installed "$mc"; then
+                    offer_fix warn 0 "CPU microcode package '$mc' is not installed (bare metal host)" \
+                        "install $mc (loaded at next reboot)" fix_install_pkg "$mc"
+                else
+                    reco "update the kernel and reboot — remaining mitigations need a newer kernel"
+                fi
+            fi
         else
             ok "all known CPU vulnerabilities mitigated or not affected"
         fi
@@ -2418,8 +2487,8 @@ chk_platform_services() {
         sb="$(mokutil --sb-state 2>/dev/null | head -1)"
         [[ -n "$sb" ]] && info "secure boot: $sb"
     fi
-    # GRUB password (informational)
-    if [[ -r /boot/grub/grub.cfg ]] && ! grep -q 'password' /boot/grub/grub.cfg 2>/dev/null; then
+    # GRUB password (informational; pointless on a VPS — no physical access)
+    if [[ "$IS_VM" != 1 && -r /boot/grub/grub.cfg ]] && ! grep -q 'password' /boot/grub/grub.cfg 2>/dev/null; then
         reco "optional (physical/console access): set a GRUB password to protect boot parameters"
     fi
 }
