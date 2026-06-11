@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="antivirus.sh is a standalone Bash malware scanner and security audit tool for Linux servers." />
+  <title>antivirus.sh — Linux Malware Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="antivirus.sh home">
+        <span class="brand-mark" aria-hidden="true">⌁</span>
+        <span>antivirus.sh</span>
+      </a>
+      <nav class="nav-links" aria-label="Page sections">
+        <a href="#features">Features</a>
+        <a href="#usage">Usage</a>
+        <a href="#safety">Safety</a>
+      </nav>
+      <div class="header-actions">
+        <button class="theme-toggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="theme-toggle-text">Dark</span>
+        </button>
+        <a class="github-link" href="https://github.com/ultra-x-coder/antivirus.sh" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Standalone Linux security scanner</p>
+          <h1 id="hero-title">Scan. Audit. Harden. All from one Bash script.</h1>
+          <p class="hero-text">
+            antivirus.sh checks Linux servers for malware, suspicious persistence, runtime indicators,
+            package integrity issues, and basic network signals — without requiring an agent.
+          </p>
+        </div>
+
+        <div class="terminal-wrap" aria-label="Installation command">
+          <div class="terminal-window">
+            <div class="terminal-chrome" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="terminal-body">
+              <div class="line muted">$ prepare a clean workspace</div>
+              <div class="line command"><span class="prompt">$</span> <span id="clone-command">git clone https://github.com/ultra-x-coder/antivirus.sh.git</span></div>
+              <div class="line muted">$ cd antivirus.sh</div>
+              <div class="line muted">$ sudo bash antivirus.sh --audit</div>
+              <button class="copy-button" type="button" data-copy-target="clone-command">Copy clone command</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="trust-strip" aria-label="Project highlights">
+        <div><strong>Shell</strong><span>100% Bash</span></div>
+        <div><strong>No agent</strong><span>Run when needed</span></div>
+        <div><strong>MIT</strong><span>Open-source license</span></div>
+        <div><strong>Linux</strong><span>Server focused</span></div>
+      </section>
+
+      <section class="section" id="features" aria-labelledby="features-title">
+        <div class="section-heading">
+          <p class="eyebrow">What it checks</p>
+          <h2 id="features-title">Focused on the places attackers hide.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="card">
+            <span class="card-icon" aria-hidden="true">01</span>
+            <h3>Malware patterns</h3>
+            <p>Looks for reverse shells, droppers, crypto-miners, suspicious scripts, and hidden executable payloads.</p>
+          </article>
+          <article class="card">
+            <span class="card-icon" aria-hidden="true">02</span>
+            <h3>Runtime indicators</h3>
+            <p>Inspects suspicious processes, temporary-directory binaries, fileless memfd activity, and rootkit signals.</p>
+          </article>
+          <article class="card">
+            <span class="card-icon" aria-hidden="true">03</span>
+            <h3>Persistence</h3>
+            <p>Reviews cron jobs, systemd units, shell startup files, udev rules, rc.local, and authorized_keys entries.</p>
+          </article>
+          <article class="card">
+            <span class="card-icon" aria-hidden="true">04</span>
+            <h3>Integrity & network</h3>
+            <p>Checks security-critical package integrity and watches for connections commonly used by botnets or miners.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split" id="usage" aria-labelledby="usage-title">
+        <div>
+          <p class="eyebrow">Usage</p>
+          <h2 id="usage-title">Choose the mode that fits your host.</h2>
+          <p class="section-text">
+            Start read-only on production systems, then move to interactive or automatic safe fixes when you are ready.
+          </p>
+        </div>
+        <div class="usage-panel">
+          <div class="usage-row">
+            <code>sudo bash antivirus.sh --audit</code>
+            <span>Report only, change nothing.</span>
+          </div>
+          <div class="usage-row">
+            <code>sudo bash antivirus.sh</code>
+            <span>Interactive scan with confirmations.</span>
+          </div>
+          <div class="usage-row">
+            <code>sudo bash antivirus.sh --fix</code>
+            <span>Apply safe fixes automatically.</span>
+          </div>
+          <div class="usage-row">
+            <code>sudo bash antivirus.sh --scan /var/www</code>
+            <span>Scan a specific path.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section safety" id="safety" aria-labelledby="safety-title">
+        <div class="safety-copy">
+          <p class="eyebrow">Safety model</p>
+          <h2 id="safety-title">Built for careful server work.</h2>
+          <p>
+            Findings are designed to be reviewed. Malicious files are quarantined rather than deleted, and audit mode keeps production checks read-only.
+          </p>
+        </div>
+        <a class="cta" href="https://github.com/ultra-x-coder/antivirus.sh" target="_blank" rel="noreferrer">
+          View repository
+          <span aria-hidden="true">→</span>
+        </a>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
