@@ -23,8 +23,6 @@
 
 `antivirus.sh` 是一个面向 Linux 服务器的自包含 Bash 扫描器。它主要检查恶意文件、持久化点、可疑进程、软件包完整性、基础网络指标，并将可疑文件安全隔离。本仓库仅包含从更大 `antivirus.sh` 安全套件中拆分出的杀毒部分。
 
-README 结构参考项目：<https://github.com/ultra-x-coder/antivirus.sh/>
-
 ## 快速开始
 
 ```bash

@@ -23,8 +23,6 @@
 
 `antivirus.sh` 는 Linux 서버용 자체 포함형 Bash 스캐너입니다. 악성 파일 탐지, 지속성 지점 점검, 프로세스 검사, 패키지 무결성 확인, 기본 네트워크 지표 점검, 안전한 격리를 수행합니다. 이 저장소에는 더 큰 `antivirus.sh` 보안 스위트에서 분리한 안티바이러스 부분만 포함됩니다.
 
-README 구성은 참고 프로젝트의 문서 스타일을 따랐습니다: <https://github.com/ultra-x-coder/antivirus.sh/>
-
 ## 빠른 시작
 
 ```bash

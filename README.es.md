@@ -23,8 +23,6 @@
 
 `antivirus.sh` es un escáner Bash autocontenido para servidores Linux. Se centra en detección de malware, comprobaciones de persistencia, inspección de procesos, integridad de paquetes, indicadores básicos de red y cuarentena segura. Este repositorio contiene solo la parte antivirus extraída del conjunto de seguridad más amplio `antivirus.sh`.
 
-La estructura de este README toma como referencia el estilo del proyecto: <https://github.com/ultra-x-coder/antivirus.sh/>
-
 ## Inicio rápido
 
 ```bash
